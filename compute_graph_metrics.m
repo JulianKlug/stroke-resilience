@@ -3,12 +3,13 @@
 clear all; close all;
 
 % data paths
-data_path = '/Users/jk1/temp/stroke_resilience/BNA_240_flipped_N32_retroicor_SBB4_prop_bin/HC/randmio_connected_bin_pos_HC_perm01-1000_06-03-2020 16-17.mat';
+data_path = '/Users/jk1/temp/stroke_resilience/BNA_240_flipped_N32_retroicor_SBB4_prop_bin/ST/randmio_connected_bin_pos_ST_perm01-1000_05-28-2020 23-28.mat';
 output_path = '/Users/jk1/temp/stroke_resilience/output';
 % SmallWorldNess toolbox by Mark Humphries needs to be declared here
 path_to_SmallWorldNess_toolbox = '/Users/jk1/matlab/toolboxes/SmallWorldNess_toolbox';
-data_field_name = 'CM_thresh_HC_bin';
-group_name = 'HC'; % one of HC / TP1-3
+data_field_name = 'CM_thresh_bin';
+secondary_sub_field_name = 'ST01';
+group_name = 'ST01'; % one of HC / TP1-3
 
 % analysis parameters
 compute_significance = false; % significance is calculated via montecarlo simulation for all data points (takes a lot of time)
@@ -33,11 +34,15 @@ if ~exist(fullfile(output_path, group_name))
 else
    warning('Output directory already exists, old results will be overwritten.'); 
 end
+output_path = fullfile(output_path, group_name);
 
 %% load the adjacency matrix for the network network
 raw_data = load(data_path);  % loads struct of data 
 
 thresh_data = raw_data.(data_field_name);
+if ~isempty(secondary_sub_field_name)
+    thresh_data = thresh_data.(secondary_sub_field_name);
+end
 thresholds = fieldnames(thresh_data);
 
 adjacency_matrix_shape = size(thresh_data.(string(thresholds(1))));
@@ -50,7 +55,7 @@ parfor subject_idx=1:n_subjects
     subject_results = cell2table({});
     for threshold_idx = 1:numel(thresholds)
         threshold = string(thresholds(threshold_idx));
-        fprintf('%0.1f %% of thresholds processed. \n',(threshold_idx/numel(thresholds) * 100));
+        fprintf('Subject %d: %0.1f %% of thresholds processed. \n',subject_idx,(threshold_idx/numel(thresholds) * 100));
         A = raw_data.(data_field_name).(threshold)(:,:,subject_idx);
 
         small_worldness_results = SmallWorldNess_Method_comparison(A, Num_ER_repeats, Num_S_repeats, I, compute_significance);
