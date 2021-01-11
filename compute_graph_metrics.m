@@ -3,10 +3,10 @@
 clear all; close all;
 
 % data paths
-data_path = '/Users/jk1/temp/stroke_resilience/BNA_240_flipped_N32_retroicor_SBB4_prop_bin/ST/randmio_connected_bin_pos_ST_perm01-1000_05-28-2020 23-28.mat';
-output_path = '/Users/jk1/temp/stroke_resilience/output';
+data_path = '/home/klug/working_data/stroke_resilience/randmio_connected_bin_pos_ST_perm01-1000_05-28-2020 23-28.mat';
+output_path = '/home/klug/output/stroke_resilience';
 % SmallWorldNess toolbox by Mark Humphries needs to be declared here
-path_to_SmallWorldNess_toolbox = '/Users/jk1/matlab/toolboxes/SmallWorldNess_toolbox';
+path_to_SmallWorldNess_toolbox = '/home/klug/utils/SmallWorldNess';
 data_field_name = 'CM_thresh_bin';
 secondary_sub_field_name = 'ST01';
 group_name = 'ST01'; % one of HC / TP1-3
@@ -56,7 +56,12 @@ parfor subject_idx=1:n_subjects
     for threshold_idx = 1:numel(thresholds)
         threshold = string(thresholds(threshold_idx));
         fprintf('Subject %d: %0.1f %% of thresholds processed. \n',subject_idx,(threshold_idx/numel(thresholds) * 100));
-        A = raw_data.(data_field_name).(threshold)(:,:,subject_idx);
+        
+	if isempty(secondary_sub_field_name) % check for subgroups 
+            A = raw_data.(data_field_name).(threshold)(:,:,subject_idx);
+        else
+            A = raw_data.(data_field_name).(secondary_sub_field_name).(threshold)(:,:,subject_idx);
+        end
 
         small_worldness_results = SmallWorldNess_Method_comparison(A, Num_ER_repeats, Num_S_repeats, I, compute_significance);
 
