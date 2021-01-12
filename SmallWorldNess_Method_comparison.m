@@ -20,8 +20,8 @@ FLAG_Ctransitive = 2;
 
 [expectedC,expectedL] = ER_Expected_L_C(K,n);  % L_rand and C_rand
 
-[S_ws,C_ws,L_ws] = small_world_ness(A,expectedL,expectedC,FLAG_Cws);  % Using WS clustering coefficient
-[S_trans,C_trans,L_trans] = small_world_ness(A,expectedL,expectedC,FLAG_Ctransitive);  %  Using transitive clustering coefficient
+[S_ws,C_ws,L_ws,Cs_ws, Ls_ws] = custom_small_world_ness(A,expectedL,expectedC,FLAG_Cws);  % Using WS clustering coefficient
+[S_trans,C_trans,L_trans, Cs_trans, Ls_trans] = custom_small_world_ness(A,expectedL,expectedC,FLAG_Ctransitive);  %  Using transitive clustering coefficient
 
 %% computing small-world-ness by estimating L_rand and C_rand from an ensemble of random graphs
 % check when using small networks...
@@ -41,16 +41,18 @@ FLAG_Ctransitive = 2;
 %% TODO CHECK If graph is fully connected
 Lrand_mean = mean(Lrand(Lrand < inf));
 %% 
-[S_ws_MC,C_ws_MC,L_ws_MC] = small_world_ness(A,Lrand_mean,mean(CrandWS),FLAG_Cws);  % Using WS clustering coefficient
-[S_trans_MC,C_trans_MC,L_trans_MC] = small_world_ness(A,Lrand_mean,mean(CrandTrans),FLAG_Ctransitive);  %  Using transitive clustering coefficient
+[S_ws_MC,C_ws_MC,L_ws_MC, Cs_ws_MC, Ls_ws_MC] = custom_small_world_ness(A,Lrand_mean,mean(CrandWS),FLAG_Cws);  % Using WS clustering coefficient
+[S_trans_MC,C_trans_MC,L_trans_MC, Cs_trans_MC, Ls_trans_MC] = custom_small_world_ness(A,Lrand_mean,mean(CrandTrans),FLAG_Ctransitive);  %  Using transitive clustering coefficient
 
 headers = {'graph_method', 'clustering_coefficient_type', ... 
-'mean_path_length', 'mean_clustering_coefficient', 'small_worldness_coefficient'};
+'mean_path_length', 'mean_clustering_coefficient', 'small_worldness_coefficient', ...
+'normalized_mean_path_length', 'mean_clustering_coefficient', ...
+'random_graph_path_length', 'random_graph_clustering_coefficient'};
 results = {
-                'analytical approximation','WS clustering coefficient',L_ws,C_ws,S_ws;
-                'analytical approximation','transitive clustering coefficient',L_trans,C_trans,S_trans;
-                'Monte Carlo estimate of random graph','WS clustering coefficient',L_ws_MC,C_ws_MC,S_ws_MC;
-                'Monte Carlo estimate of random graph','transitive clustering coefficient',L_trans_MC,C_trans_MC,S_trans_MC;
+                'analytical approximation','WS clustering coefficient',L_ws,C_ws,S_ws, Ls_ws, Cs_ws, expectedL, expectedC;
+                'analytical approximation','transitive clustering coefficient',L_trans,C_trans,S_trans, Ls_trans, Cs_trans, expectedL, expectedC;
+                'Monte Carlo estimate of random graph','WS clustering coefficient',L_ws_MC,C_ws_MC,S_ws_MC, Ls_ws_MC, Cs_ws_MC, Lrand,CrandWS;
+                'Monte Carlo estimate of random graph','transitive clustering coefficient',L_trans_MC,C_trans_MC,S_trans_MC, Ls_trans, Cs_trans, Lrand,CrandTrans;
                 };
 small_worldness_results = cell2table(results);
 small_worldness_results.Properties.VariableNames = headers;
