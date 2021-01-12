@@ -8,8 +8,14 @@ output_path = '/home/klug/output/stroke_resilience';
 % SmallWorldNess toolbox by Mark Humphries needs to be declared here
 path_to_SmallWorldNess_toolbox = '/home/klug/utils/SmallWorldNess';
 data_field_name = 'CM_thresh_bin';
-secondary_sub_field_name = 'ST01';
-group_name = 'ST01'; % one of HC / TP1-3
+
+timepoints = {'ST01', 'ST02', 'ST03'};
+for tp_idx = 1:length(timepoints) 
+    tp = string(timepoints(tp_idx));
+    secondary_sub_field_name = tp;
+    group_name = tp; % one of HC / TP1-3
+end
+
 
 % analysis parameters
 compute_significance = false; % significance is calculated via montecarlo simulation for all data points (takes a lot of time)
