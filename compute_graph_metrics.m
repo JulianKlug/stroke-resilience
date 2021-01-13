@@ -4,17 +4,18 @@ clear all; close all;
 
 % data paths
 data_path = '/home/klug/working_data/stroke_resilience/randmio_connected_bin_pos_ST_perm01-1000_05-28-2020 23-28.mat';
-% SmallWorldNess toolbox by Mark Humphries needs to be declared here
-path_to_SmallWorldNess_toolbox = '/home/klug/utils/SmallWorldNess';
-data_field_name = 'CM_thresh_bin';
-
-timepoints = {'ST01', 'ST02', 'ST03'};
-parfor tp_idx = 1:length(timepoints)
 output_path = '/home/klug/output/stroke_resilience';
 
-tp = string(timepoints(tp_idx));
-secondary_sub_field_name = tp;
-group_name = tp; % one of HC / TP1-3
+% SmallWorldNess toolbox by Mark Humphries needs to be declared here
+path_to_SmallWorldNess_toolbox = '/home/klug/utils/SmallWorldNess';
+data_field_name = 'CM_thresh_HC_bin';
+
+% timepoints = {'ST01', 'ST02', 'ST03'};
+% for tp_idx = 1:length(timepoints)
+% tp = string(timepoints(tp_idx));
+
+secondary_sub_field_name = '';
+group_name = 'HC'; % one of HC / TP1-3
 
 
 % analysis parameters
@@ -81,4 +82,4 @@ parfor subject_idx=1:n_subjects
 end
 
 writetable(all_results, fullfile(output_path, 'small_worldness_comparison.csv'))
-end
+
