@@ -1,5 +1,13 @@
+# do not upload data
+*.csv
+*.xslx
+
+
 .idea
 .DS_Store
+.RData
+.Rhistory
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
