@@ -2,6 +2,13 @@ library(lme4)
 library(sjPlot) #for plotting lmer and glmer mods
 library(tidyverse)
 
+# Analysis of mean global efficiency after random and targeted attacks
+# 1. Mean was taken over sequential removal of random/targeted nodes
+# 2. AUC was taken over selected density thresholds (0.3-1)
+# 3. Here we perform
+# - A. a mixed effects model with timepoint as fixed effects and subject as random effects
+# - B. a mixed effects model with time-group interaction as fixed effects and subject as random effects
+
 df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/attack_analysis/mean_glob_eff_auc_after_attack_df.csv")
 df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical
 df_full$time_group = with(df_full, interaction(timepoint,  group))

@@ -1,6 +1,7 @@
 library(lme4)
 library(sjPlot) #for plotting lmer and glmer mods
 
+# Analysis of global efficiency after clinical attacks
 
 df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/attack_analysis/glob_eff_after_attack_df.csv")
 df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical

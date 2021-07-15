@@ -1,8 +1,9 @@
 library(lme4)
+library(lmerTest)
 library(sjPlot) #for plotting lmer and glmer mods
 
 
-df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/efficiency_longitudinal_analysis/glob_eff_df.csv")
+df_full <- read_csv("longitudinal_analysis/glob_eff_df.csv")
 df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical
 df_full$time_group = with(df_full, interaction(timepoint,  group))
 
@@ -23,7 +24,6 @@ plot(res, main='Analysis of time points')
 sjPlot:: tab_model(timepoint_model_fit, title = 'Analysis of time points')
 
 qqnorm(resid(timepoint_model_fit), main = 'QQ plot, Analysis of time points')
-
 
 # Model 2: group difference at individual time points hypothesis
 group_model_fit <- lmer(glob_eff ~ time_group + (1|subject)  + (1|density_bin), df_full)

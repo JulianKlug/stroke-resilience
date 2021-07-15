@@ -1,15 +1,15 @@
 library(lme4)
 library(lmerTest)
-library(readr)
-library(tidyverse) #for all data wrangling
-library(cowplot) #for manuscript ready figures
+# library(readr)
+# library(tidyverse) #for all data wrangling
+# library(cowplot) #for manuscript ready figures
 library(sjPlot) #for plotting lmer and glmer mods
-library(lattice)
-library(sjstats) #use for r2 functions
-library(rstatix)
+# library(lattice)
+# library(sjstats) #use for r2 functions
+# library(rstatix)
 
 # read in data from 4-way ANOVA with between-subject and within-subject factors
-df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/efficiency_longitudinal_analysis/glob_eff_auc_df.csv")
+df_full <- read_csv("longitudinal_analysis/glob_eff_auc_df.csv")
 df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical
 df_full$time_group = with(df_full, interaction(timepoint,  group))
 
@@ -25,8 +25,10 @@ overall_model_fit <- lmer(glob_eff_auc ~ group * timepoint + (1|subject), df_ful
 timepoint_model_fit <- lmer(glob_eff_auc ~ timepoint + (1|subject), df_st)
 group_model_fit <- lmer(glob_eff_auc ~ time_group + (1|subject), df_full)
 
+model_fit <- timepoint_model_fit
+
 # display results of linear regression
-summary(overall_model_fit)
+summary(model_fit)
 
 plot(model_fit)
 res<-resid(model_fit)
