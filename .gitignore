@@ -1,7 +1,7 @@
 # do not upload data
 *.csv
 *.xslx
-
+*.tiff
 
 .idea
 .DS_Store

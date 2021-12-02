@@ -9,8 +9,9 @@ library(tidyverse)
 # - A. a mixed effects model with timepoint as fixed effects and subject as random effects
 # - B. a mixed effects model with time-group interaction as fixed effects and subject as random effects
 
-df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/attack_analysis/mean_glob_eff_auc_after_attack_df.csv")
-df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical
+df_full <- read_csv("/Users/jk1/stroke_research/resilience_stroke/attack_analysis/mean_glob_eff_auc_after_attack_df_with_patien_characteristics.csv")
+# df_full$timepoint = as.factor(df_full$timepoint) # converting to categorical
+df_full$lesion_volume = as.factor(df_full$lesion_volume) # converting to categorical
 df_full$time_group = with(df_full, interaction(timepoint,  group))
 
 # creating subsets for attack types
@@ -44,7 +45,10 @@ qqnorm(resid(overall_group_model_fit), main = 'QQ plot, Analysis of group differ
 
 
 # Model 1: testing time point hypothesis for random attacks
-random_attack_timepoint_model_fit <- lmer(mean_glob_eff_auc ~ timepoint + (1|subject), df_random_st)
+# random_attack_timepoint_model_fit <- lmer(mean_glob_eff_auc ~ timepoint + (1|subject), df_random_st)
+# correct for patient initial lesion volume and side
+random_attack_timepoint_model_fit_corrected <- lmer(mean_glob_eff_auc ~ timepoint + (1|lesion_volume) + (1|subject) + (1|lesion_side), df_random_st)
+random_attack_timepoint_model_fit <- random_attack_timepoint_model_fit_corrected
 # display results
 summary(random_attack_timepoint_model_fit)
 plot(random_attack_timepoint_model_fit, main='Analysis of time points after random attack')
@@ -52,6 +56,7 @@ res<-resid(random_attack_timepoint_model_fit)
 plot(res, main='Analysis of time points after random attack')
 sjPlot:: tab_model(random_attack_timepoint_model_fit, title = 'Analysis of time points after random attack')
 qqnorm(resid(random_attack_timepoint_model_fit), main = 'QQ plot, Analysis of time points after random attack')
+anova(random_attack_timepoint_model_fit)
 
 # Model 2: group difference at individual time points hypothesis for random attacks
 random_attack_group_model_fit <- lmer(mean_glob_eff_auc ~ time_group + (1|subject), df_random)
@@ -65,7 +70,9 @@ qqnorm(resid(random_attack_group_model_fit), main = 'QQ plot, Analysis of group 
 
 
 # Model 1: testing time point hypothesis for targeted attacks
-targeted_attack_timepoint_model_fit <- lmer(mean_glob_eff_auc ~ timepoint + (1|subject), df_targeted_st)
+# targeted_attack_timepoint_model_fit <- lmer(mean_glob_eff_auc ~ timepoint + (1|subject), df_targeted_st)
+targeted_attack_timepoint_model_fit_corrected <- lmer(mean_glob_eff_auc ~ timepoint + (1|lesion_volume) + (1|subject) + (1|lesion_side), df_targeted_st)
+targeted_attack_timepoint_model_fit <- targeted_attack_timepoint_model_fit_corrected
 # display results
 summary(targeted_attack_timepoint_model_fit)
 plot(targeted_attack_timepoint_model_fit, main='Analysis of time points after targeted attack')
@@ -73,6 +80,7 @@ res<-resid(targeted_attack_timepoint_model_fit)
 plot(res, main='Analysis of time points after targeted attack')
 sjPlot:: tab_model(targeted_attack_timepoint_model_fit, title = 'Analysis of time points after targeted attack')
 qqnorm(resid(targeted_attack_timepoint_model_fit), main = 'QQ plot, Analysis of time points after targeted attack')
+anova(targeted_attack_timepoint_model_fit)
 
 # Model 2: group difference at individual time points hypothesis for targeted attacks
 targeted_attack_group_model_fit <- lmer(mean_glob_eff_auc ~ time_group + (1|subject), df_targeted)
