@@ -73,7 +73,7 @@ def detect_masked_regions(atlas_path:str, mask_path:str, n_voxels_overlap_thresh
 
 def remove_regions_from_original_connectivity_file(regions_to_remove:list, connectivity_file_path:str,
                                           connectivity_matrix_name_start:list = ['CM'], timecourse_matrix_name_start:list=['TCS'],
-                                          save_dir:str='') -> None:
+                                          save_dir:str='', save_prefix:str='masked_') -> None:
     """
     Method to remove regions from a connectivity matrix file and save the filtered file
     :param regions_to_remove: list of regions to remove
@@ -110,7 +110,7 @@ def remove_regions_from_original_connectivity_file(regions_to_remove:list, conne
     if save_dir == '':
         save_dir = os.path.dirname(connectivity_file_path)
 
-    sio.savemat(os.path.join(save_dir, 'masked_' + os.path.basename(connectivity_file_path)), filtered_connectivity)
+    sio.savemat(os.path.join(save_dir, save_prefix + os.path.basename(connectivity_file_path)), filtered_connectivity)
 
 
 
