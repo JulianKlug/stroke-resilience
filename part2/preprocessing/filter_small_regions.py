@@ -28,7 +28,7 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
         connectivity_matrix_name_start {list} -- list of strings that start the name of the connectivity matrix in the matlab file (default: {['CM']})
         timecourse_matrix_name_start {list} -- list of strings that start the name of the timecourse matrix in the matlab file (default: {['TCS']})
         save_prefix {str} -- prefix to add to filtered connectivity matrix file (default: {'filtered_'})
-        threshold {int} -- threshold for number of voxels in a region (default: {2})
+        threshold {int} -- threshold (exclusive upper bound) for number of voxels in a region (default: {2})
         verbose {bool} -- print statements (default: {True})
 
     :return:
@@ -37,6 +37,7 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
     masked_connectivity_matrix_name = masked_prefix + connectivity_matrix_filename
     connectivity_files_paths = []
     masked_connectivity_files_paths = []
+    n_labels = 246
 
     # Find regions that are too small in at least one patient (i.e. have < [threshold] voxels)
     small_regions = []
@@ -49,10 +50,8 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
             if file.endswith(atlased_T1_name_end):
                 # - load atlased T1
                 atlased_T1 = nib.load(os.path.join(data_directory, patient, file))
-                # - find unique region labels
-                unique_labels = np.unique(atlased_T1.get_fdata())
-                # - loop through unique region labels
-                for label in unique_labels:
+                # - loop through region labels
+                for label in range(1, n_labels + 1):
                     # - find number of voxels in region
                     num_voxels = np.sum(atlased_T1.get_fdata() == label)
                     # - if number of voxels < threshold, add label to list of small regions
