@@ -123,7 +123,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     connectivity_matrix = np.abs(connectivity_matrix)
 
     # compute overall functional connectivity (FC): mean of all positive values (or absolute) across all elements of the  matrix
-    overall_functional_connectivity = np.mean(connectivity_matrix)
+    overall_functional_connectivity = np.nanmean(connectivity_matrix)
 
     # transform into graph at multiple thresholds [0.1, 0.2, ..., 1]
     thresholds = np.arange(0.1, 1.1, 0.1)
