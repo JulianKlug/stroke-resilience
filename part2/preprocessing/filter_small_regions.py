@@ -16,7 +16,7 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
     '''
     Remove regions with < [threshold] voxels for at least one subject in the dataset
 
-    Prerequisite: connectivity matrices are already filtered (presupposes structure of .mat after filtering
+    Prerequisite: connectivity matrices are already masked (presupposes structure of .mat after masking)
 
     Result: save connectivity matrix' with small regions removed
 
@@ -90,7 +90,7 @@ def remove_regions_from_masked_connectivity_file(regions_to_remove:list, connect
                                           connectivity_matrix_name_start:list = ['CM'], timecourse_matrix_name_start:list=['TCS'],
                                           save_dir:str='', save_prefix:str='filtered_') -> None:
     """
-    Method to remove regions from a connectivity matrix file and save the filtered file
+    Method to remove regions from a connectivity matrix file (once it has been masked ie matfile structure modified) and save the filtered file
     :param regions_to_remove: list of regions to remove
     :param connectivity_file_path: path to connectivity matrix matlab (.mat) file
     :param connectivity_matrix_name_start: list of strings that start the name of the connectivity matrix in the matlab file
