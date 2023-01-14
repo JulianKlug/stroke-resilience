@@ -3,6 +3,7 @@ import scipy.io as sio
 import numpy as np
 
 from part2.preprocessing.filter_small_regions import remove_regions_from_masked_connectivity_file
+from part2.preprocessing.mask_atlas_overlap_in_connectivity import remove_regions_from_original_connectivity_file
 
 
 def filter_regions_with_nan(data_directory:str,
@@ -32,10 +33,11 @@ def filter_regions_with_nan(data_directory:str,
 
     filtered_connectivity_matrix_name = filtered_prefix + masked_prefix + connectivity_matrix_filename
     filtered_connectivity_files_paths = []
-    n_labels = 246
+    unmasked_connectivity_files_paths = []
 
     # Find regions that are have NaN values in at least one patient
-    regions_with_nan = []
+    masked_regions_with_nan = []
+    umasked_regions_with_nan = []
     # - loop through main data directory
     for patient in os.listdir(data_directory):
         if not os.path.isdir(os.path.join(data_directory, patient)):
@@ -51,17 +53,34 @@ def filter_regions_with_nan(data_directory:str,
                 for region_index in range(filtered_CM.shape[0]):
                     # - if region has only NaN values, find label and add it to list
                     if np.isnan(filtered_CM[region_index, :]).all():
-                        regions_with_nan.append(codeBook[:, region_index][0])
+                        masked_regions_with_nan.append(codeBook[:, region_index][0])
                         if verbose:
                             print(f'Region {codeBook[:, region_index][0]} has NaN values in {patient}')
 
                 filtered_connectivity_files_paths.append(os.path.join(data_directory, patient, file))
 
+            if file == connectivity_matrix_filename:
+                # load connectivity matrix
+                unmasked_connectivity_file = sio.loadmat(os.path.join(data_directory, patient, file))
+                unmasked_CM = unmasked_connectivity_file['CM3D'][0][0][0]
+                unmasked_codeBook = np.squeeze(unmasked_connectivity_file['allCodeBooks'][0][0][0][0][0][0][0][0][0][0][0])
+                # - loop through region indexes
+                for region_index in range(unmasked_CM.shape[0]):
+                    # - if region has only NaN values, find label and add it to list
+                    if np.isnan(unmasked_CM[region_index, :]).all():
+                        umasked_regions_with_nan.append(unmasked_codeBook[region_index])
+                        if verbose:
+                            print(f'Unmasked data: Region {unmasked_codeBook[region_index]} has NaN values in {patient}')
+
+                unmasked_connectivity_files_paths.append(os.path.join(data_directory, patient, file))
+
     # retain only a collection of unique regions
-    regions_with_nan = list(set(regions_with_nan))
+    regions_with_nan = list(set(masked_regions_with_nan))
+    unmasked_regions_with_nan = list(set(umasked_regions_with_nan))
 
     if verbose:
-        print(f'List of regions with NaN ({str(len(regions_with_nan))}):', regions_with_nan)
+        print(f'List of regions with NaN in masked data: ({str(len(regions_with_nan))}):', regions_with_nan)
+        print(f'List of regions with NaN in unmasked data: ({str(len(unmasked_regions_with_nan))}):', unmasked_regions_with_nan)
 
     # Remove found small regions from connectivity matrices for all subjects
     for filtered_connectivity_file in filtered_connectivity_files_paths:
@@ -69,6 +88,12 @@ def filter_regions_with_nan(data_directory:str,
                                                      connectivity_matrix_name_start=connectivity_matrix_name_start,
                                                      timecourse_matrix_name_start=timecourse_matrix_name_start
                                                      )
+
+    for unmasked_connectivity_file in unmasked_connectivity_files_paths:
+        remove_regions_from_original_connectivity_file(unmasked_regions_with_nan, unmasked_connectivity_file, save_prefix=save_prefix,
+                                                       connectivity_matrix_name_start=connectivity_matrix_name_start,
+                                                       timecourse_matrix_name_start=timecourse_matrix_name_start
+                                                       )
 
     return None
 
