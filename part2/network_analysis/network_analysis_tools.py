@@ -146,16 +146,16 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     global_efficiencies = {threshold: global_efficiency(graph) for threshold, graph in graphs.items()}
 
     # compute AUC for each metric over all thresholds above minimum_connectivity_threshold
-    mean_degree_auc = auc([mean_degrees[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                          [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold])
-    median_degree_auc = auc([median_degrees[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                            [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold])
-    mean_clustering_coefficient_auc = auc([mean_clustering_coefficients[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                                            [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold])
-    median_clustering_coefficient_auc = auc([median_clustering_coefficients[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                                            [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold])
-    global_efficiency_auc = auc([global_efficiencies[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                                [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold])
+    mean_degree_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
+                            [mean_degrees[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold])
+    median_degree_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
+                            [median_degrees[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold])
+    mean_clustering_coefficient_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
+                            [mean_clustering_coefficients[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold])
+    median_clustering_coefficient_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
+                            [median_clustering_coefficients[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold])
+    global_efficiency_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
+                                [global_efficiencies[threshold] for threshold in thresholds if threshold >= minimum_connectivity_threshold])
 
     return mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, global_efficiency_auc, overall_functional_connectivity
 

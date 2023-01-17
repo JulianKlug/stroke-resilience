@@ -1,0 +1,12 @@
+bctpy==0.6.0
+imageio==2.10.4
+matplotlib==3.3.3
+nibabel==3.2.1
+nilearn==0.9.2
+nipype==1.7.0
+pandas==1.2.0
+scikit-image==0.18.3
+scikit-learn
+scipy
+tqdm==4.61.2
+xlrd==2.0.1
