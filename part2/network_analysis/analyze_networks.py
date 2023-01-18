@@ -1,5 +1,7 @@
 import argparse
 import os
+import warnings
+
 import pandas as pd
 import scipy.io as sio
 
@@ -32,25 +34,30 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
     # loop over subjects
     for subject in subjects:
         # find the connectivity matrix path
-        connectivity_matrix_path = [os.path.join(data_dir, subject, file) for file in os.listdir(os.path.join(data_dir, subject)) if file.startswith(connectivity_file_prefix) and file.endswith('.mat')][0]
-        if not os.path.exists(connectivity_matrix_path):
-            raise ValueError(f'Could not find connectivity matrix for subject {subject}')
+        connectivity_matrix_path_possibilities = [os.path.join(data_dir, subject, file) for file in os.listdir(os.path.join(data_dir, subject)) if file.startswith(connectivity_file_prefix) and file.endswith('.mat')]
+        if len(connectivity_matrix_path_possibilities) == 0:
+            warnings.warn(f'Could not find connectivity matrix for subject {subject}. Skipping subject.')
+            continue
+        elif len(connectivity_matrix_path_possibilities) > 1:
+            warnings.warn(f'Multiple connectivity matrices found for subject {subject}, retaining only {os.path.basename(connectivity_matrix_path_possibilities[0])}')
+        connectivity_matrix_path = connectivity_matrix_path_possibilities[0]
 
         connectivity_matrix = sio.loadmat(connectivity_matrix_path)[matrix_name]
         mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, global_efficiency_auc, overall_functional_connectivity = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold)
 
-        output_df = output_df.append({'subject': subject,
+        output_df = pd.concat([output_df, pd.DataFrame({'subject': subject,
                                 'mean_degree_auc': mean_degree_auc, 'median_degree_auc': median_degree_auc,
                                 'mean_clustering_coefficient_auc': mean_clustering_coefficient_auc,
                                 'median_clustering_coefficient_auc': median_clustering_coefficient_auc,
                                 'global_efficiency_auc': global_efficiency_auc,
                                 'overall_functional_connectivity': overall_functional_connectivity},
-                                 ignore_index=True)
+                                 index=[0])], ignore_index=True)
 
     # add columns 'matrix_name', 'minimum_connectivity_threshold', 'connectivity_file_prefix' to output_df
     output_df['matrix_name'] = matrix_name
     output_df['minimum_connectivity_threshold'] = minimum_connectivity_threshold
     output_df['connectivity_file_prefix'] = connectivity_file_prefix
+    output_df['connectivity_file_name'] = os.path.basename(connectivity_matrix_path)
 
     return output_df
 
