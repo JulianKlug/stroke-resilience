@@ -34,7 +34,9 @@ def to_unweighted_graph(connectivity_matrix, threshold):
 
     # set nan to 0
     connectivity_matrix[np.isnan(connectivity_matrix)] = 0
-    thresholded_graph = bct.threshold_proportional(connectivity_matrix, threshold, copy=True)
+    # Rubinov M, Sporns O (2010) NeuroImage 52:1059-69: "all self-connections or negative connections (such as functional anticorrelations) must currently be removed from the networks prior to analysis"
+    pos_connectivity_matrix = bct.threshold_absolute(connectivity_matrix, 0, copy=True)
+    thresholded_graph = bct.threshold_proportional(pos_connectivity_matrix, threshold, copy=True)
     binarized_graph = bct.weight_conversion(thresholded_graph, 'binarize', copy=True)
     autofixed_graph = autofix(binarized_graph, copy=True)
 
@@ -119,11 +121,10 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
         minimum_connectivity_threshold (float, optional): Minimum threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).
 
     """
-    # retain only absolute values
-    connectivity_matrix = np.abs(connectivity_matrix)
-
-    # compute overall functional connectivity (FC): mean of all positive values (or absolute) across all elements of the  matrix
-    overall_functional_connectivity = np.nanmean(connectivity_matrix)
+    # compute overall functional connectivity (FC): mean of all positive values across all elements of the  matrix
+    temp_CM = connectivity_matrix.copy()
+    temp_CM[temp_CM < 0] = 0
+    overall_functional_connectivity = np.nanmean(temp_CM)
 
     # transform into graph at multiple thresholds [0.1, 0.2, ..., 1]
     thresholds = np.arange(0.1, 1.1, 0.1)
