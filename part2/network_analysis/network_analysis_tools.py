@@ -2,90 +2,7 @@ import numpy as np
 import bct
 from sklearn.metrics import auc
 
-"""
-Matrix distributions
-CM3D: min: -0.73, max: 1.00
-CM3D_z: min: -0.93, max: 7.25
-CM3D_z_norm: min: -0.00, max: 0.00
-CM_mu: min: -0.73, max: 1.00
-CM_mu_z: min: -0.93, max: 7.25
-CM_std: min: 0.00, max: 0.00
-CM_std_z: min: 0.00, max: 0.00
-"""
-
-
-def to_unweighted_graph(connectivity_matrix, threshold):
-    """Transform connectivity matrix into an unweighted graph at a given threshold of proportional thresholding.
-
-    Steps:
-    - Threshold connectivity matrix at given threshold, through proportional thresholding (as implemented in BCT)
-        - Gist: retain only the top t% of the weights in the matrix, where t is the threshold
-        - Note: For issues with regard to proportional thresholding, see Martijn P. van den Heuvel, Siemon C. de Lange, Andrew Zalesky, Caio Seguin, B.T. Thomas Yeo, Ruben Schmidt, Proportional thresholding in resting-state fMRI functional connectivity networks and consequences for patient-control connectome studies: Issues and recommendations, NeuroImage, Volume 152, 2017, 437-449, ISSN 1053-8119, https://doi.org/10.1016/j.neuroimage.2017.02.005.
-    - Transform into unweighted graph by binarizing graph (as implemented in BCT)
-    - Fix common problems (as implemented in BCT): remove Inf and NaN, ensure exact binariness and symmetry (i.e. remove floating point instability), and zero diagonal.
-
-    Args:
-        connectivity_matrix (np.ndarray): Connectivity matrix.
-        threshold (float): Threshold for proportional thresholding - from t=0 (no connection) to t=1 (all connections retained)
-
-    Returns:
-        np.ndarray: Graph.
-    """
-
-    # set nan to 0
-    connectivity_matrix[np.isnan(connectivity_matrix)] = 0
-    # Rubinov M, Sporns O (2010) NeuroImage 52:1059-69: "all self-connections or negative connections (such as functional anticorrelations) must currently be removed from the networks prior to analysis"
-    pos_connectivity_matrix = bct.threshold_absolute(connectivity_matrix, 0, copy=True)
-    thresholded_graph = bct.threshold_proportional(pos_connectivity_matrix, threshold, copy=True)
-    binarized_graph = bct.weight_conversion(thresholded_graph, 'binarize', copy=True)
-    autofixed_graph = autofix(binarized_graph, copy=True)
-
-    return autofixed_graph
-
-
-def autofix(W, copy=True):
-    '''
-    This is a local version of the BCT function autofix. It is a copy of the original function with the following changes:
-    - corrected setting to zero nans & infs
-
-    Fix a bunch of common problems. More specifically, remove Inf and NaN,
-    ensure exact binariness and symmetry (i.e. remove floating point
-    instability), and zero diagonal.
-
-
-    Parameters
-    ----------
-    W : np.ndarray
-        weighted connectivity matrix
-    copy : bool
-        if True, returns a copy of the matrix. Otherwise, modifies the matrix
-        in place. Default value=True.
-
-    Returns
-    -------
-    W : np.ndarray
-        connectivity matrix with fixes applied
-    '''
-    if copy:
-        W = W.copy()
-
-    # zero diagonal
-    np.fill_diagonal(W, 0)
-
-    # remove np.inf and np.nan
-    W[np.where(np.isinf(W))] = 0
-    W[np.where(np.isnan(W))] = 0
-
-    # ensure exact binarity
-    u = np.unique(W)
-    if np.all(np.logical_or(np.abs(u) < 1e-8, np.abs(u - 1) < 1e-8)):
-        W = np.around(W, decimals=5)
-
-    # ensure exact symmetry
-    if np.allclose(W, W.T):
-        W = np.around(W, decimals=5)
-
-    return W
+from part2.network_analysis.network_construction_tools import to_unweighted_graph
 
 
 def global_efficiency(graph):
@@ -104,7 +21,8 @@ def global_efficiency(graph):
     return global_efficiency
 
 
-def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connectivity_threshold: float = 0.3) -> None:
+def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connectivity_threshold: float = 0.3,
+                               binned_thresholding: bool = False) -> None:
     """Analyze connectivity matrix, transform into a graph at multiple thresholds and analyze each graph. For each metric, the AUC over all thresholds is returned.
 
     Steps:
@@ -119,6 +37,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     Args:
         connectivity_matrix (np.ndarray): Connectivity matrix.
         minimum_connectivity_threshold (float, optional): Minimum threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).
+        binned_thresholding
 
     """
     # compute overall functional connectivity (FC): mean of all positive values across all elements of the  matrix
@@ -130,7 +49,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     thresholds = np.arange(0.1, 1.1, 0.1)
     # only keep one decimal place
     thresholds = np.around(thresholds, decimals=1)
-    graphs = [to_unweighted_graph(connectivity_matrix, threshold) for threshold in thresholds]
+    graphs = [to_unweighted_graph(connectivity_matrix, threshold, binned_thresholding=binned_thresholding) for threshold in thresholds]
     # build dictionary with graph and threshold
     graphs = dict(zip(thresholds, graphs))
 

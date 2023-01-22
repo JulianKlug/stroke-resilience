@@ -3,9 +3,14 @@
 
 Steps:
 1. Take absolute of the connectivity matrix 
-2. Threshold connectivity matrix at given threshold, through proportional thresholding (as implemented in BCT)
-   - Gist: retain only the top t% of the weights in the matrix, where t is the threshold
-   - Note: For issues with regard to proportional thresholding, see Martijn P. van den Heuvel et al. Proportional thresholding in resting-state fMRI functional connectivity networks and consequences for patient-control connectome studies: Issues and recommendations, NeuroImage, https://doi.org/10.1016/j.neuroimage.2017.02.005.
+2. Threshold connectivity matrix at given threshold, through either proportional thresholding or binned proportional thresholding
+
+   A. Proportional thresholding (as implemented in BCT)
+      - Gist: retain only the top t% of the weights in the matrix, where t is the threshold
+      - Note: For issues with regard to proportional thresholding, see Martijn P. van den Heuvel et al. Proportional thresholding in resting-state fMRI functional connectivity networks and consequences for patient-control connectome studies: Issues and recommendations, NeuroImage, https://doi.org/10.1016/j.neuroimage.2017.02.005.
+   
+   B. Binned proportional thresholding 
+      - Gist: retain only the weights in the bin from top t% to top t+increment% of weights
 3. Transform into unweighted graph by binarizing graph (as implemented in BCT)
 4. Fix common problems (as implemented in BCT): remove Inf and NaN, ensure exact binariness and symmetry (i.e. remove floating point instability), and zero diagonal.
 
