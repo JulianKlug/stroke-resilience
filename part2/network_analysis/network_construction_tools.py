@@ -29,7 +29,7 @@ def to_unweighted_graph(connectivity_matrix, threshold, binned_thresholding=Fals
         binned_thresholding (bool)
 
     Returns:
-        np.ndarray: Graph.
+        np.ndarray: adjacency matrix of resulting Graph
     """
 
     # set nan to 0
@@ -118,9 +118,6 @@ def threshold_by_proportional_bin(W, p, n_total_bins=10, copy=True):
         bin-thresholded connectivity matrix
     '''
     from bct.utils.miscellaneous_utilities import teachers_round as round
-
-    if p == 0.9:
-        print()
 
     if p > 1 or p < 0:
         raise ValueError('Threshold must be in range [0,1]')
