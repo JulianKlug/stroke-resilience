@@ -4,7 +4,7 @@ import nibabel as nib
 import numpy as np
 from nilearn.image import resample_img
 
-from part2.preprocessing.tools import remove_regions_from_connectivity
+from part2.preprocessing.tools import remove_regions_from_connectivity, remove_regions_from_connectivity_file
 
 
 def detect_masked_regions(atlas_path:str, mask_path:str, n_voxels_overlap_threshold:int=None, fractional_overlap_threshold:float=None,
@@ -71,49 +71,6 @@ def detect_masked_regions(atlas_path:str, mask_path:str, n_voxels_overlap_thresh
     return masked_regions_over_threshold
 
 
-def remove_regions_from_original_connectivity_file(regions_to_remove:list, connectivity_file_path:str,
-                                          connectivity_matrix_name_start:list = ['CM'], timecourse_matrix_name_start:list=['TCS'],
-                                          save_dir:str='', save_prefix:str='masked_') -> None:
-    """
-    Method to remove regions from a connectivity matrix file and save the filtered file
-    :param regions_to_remove: list of regions to remove
-    :param connectivity_file_path: path to connectivity matrix matlab (.mat) file
-    :param connectivity_matrix_name_start: list of strings that start the name of the connectivity matrix in the matlab file
-    :param timecourse_matrix_name_start: list of strings that start the name of the timecourse matrix in the matlab file
-    :return: None
-    """
-
-    connectivity = sio.loadmat(connectivity_file_path)
-    filtered_connectivity = connectivity.copy()
-    initial_index_to_region_correspondence = np.squeeze(connectivity['allCodeBooks'][0][0][0][0][0][0][0][0][0][0][0])
-
-    connectivity_matrix_keys = [key for key in connectivity.keys() if key.startswith(tuple(connectivity_matrix_name_start))]
-    timecourse_matrix_keys = [key for key in connectivity.keys() if key.startswith(tuple(timecourse_matrix_name_start))]
-
-    for connectivity_matrix_key in connectivity_matrix_keys:
-        connectivity_matrix = connectivity[connectivity_matrix_key][0][0][0]
-        filtered_connectivity_matrix, filtered_index_to_region_correspondence = remove_regions_from_connectivity(regions_to_remove,
-                                                                                              connectivity_matrix,
-                                                                                               list(initial_index_to_region_correspondence))
-        filtered_connectivity[connectivity_matrix_key] = filtered_connectivity_matrix
-
-    for timecourse_matrix_key in timecourse_matrix_keys:
-        timecourse_matrix = connectivity[timecourse_matrix_key][0][0][0][0][0]
-        filtered_timecourse_matrix, filtered_index_to_region_correspondence = remove_regions_from_connectivity(
-            regions_to_remove,
-            timecourse_matrix,
-            list(initial_index_to_region_correspondence))
-        filtered_connectivity[timecourse_matrix_key] = filtered_timecourse_matrix
-
-    filtered_connectivity['allCodeBooks'] = filtered_index_to_region_correspondence
-
-    if save_dir == '':
-        save_dir = os.path.dirname(connectivity_file_path)
-
-    sio.savemat(os.path.join(save_dir, save_prefix + os.path.basename(connectivity_file_path)), filtered_connectivity)
-
-
-
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Mask regions from a connectivity matrix file')
@@ -144,4 +101,4 @@ if __name__ == '__main__':
         elif args.fractional_overlap_threshold is not None:
             print('Masked regions: {}'.format(masked_regions), 'at threshold: {}'.format(args.fractional_overlap_threshold))
 
-    remove_regions_from_original_connectivity_file(masked_regions, args.connectivity_path, args.connectivity_name_start, args.timecourse_name_start, save_dir=args.output_dir)
+    remove_regions_from_connectivity_file(masked_regions, args.connectivity_path, args.connectivity_name_start, args.timecourse_name_start, save_dir=args.output_dir)

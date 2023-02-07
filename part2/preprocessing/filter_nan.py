@@ -2,8 +2,7 @@ import os
 import scipy.io as sio
 import numpy as np
 
-from part2.preprocessing.filter_small_regions import remove_regions_from_masked_connectivity_file
-from part2.preprocessing.mask_atlas_overlap_in_connectivity import remove_regions_from_original_connectivity_file
+from part2.preprocessing.tools import remove_regions_from_connectivity_file
 
 
 def filter_regions_with_nan(data_directory:str,
@@ -84,13 +83,13 @@ def filter_regions_with_nan(data_directory:str,
 
     # Remove found small regions from connectivity matrices for all subjects
     for filtered_connectivity_file in filtered_connectivity_files_paths:
-        remove_regions_from_masked_connectivity_file(regions_with_nan, filtered_connectivity_file, save_prefix=save_prefix,
+        remove_regions_from_connectivity_file(regions_with_nan, filtered_connectivity_file, save_prefix=save_prefix,
                                                      connectivity_matrix_name_start=connectivity_matrix_name_start,
                                                      timecourse_matrix_name_start=timecourse_matrix_name_start
                                                      )
 
     for unmasked_connectivity_file in unmasked_connectivity_files_paths:
-        remove_regions_from_original_connectivity_file(unmasked_regions_with_nan, unmasked_connectivity_file, save_prefix=save_prefix,
+        remove_regions_from_connectivity_file(unmasked_regions_with_nan, unmasked_connectivity_file, save_prefix=save_prefix,
                                                        connectivity_matrix_name_start=connectivity_matrix_name_start,
                                                        timecourse_matrix_name_start=timecourse_matrix_name_start
                                                        )

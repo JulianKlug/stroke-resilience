@@ -1,11 +1,8 @@
 import os
 import os.path
-import scipy.io as sio
 import nibabel as nib
 import numpy as np
-
-from part2.preprocessing.mask_atlas_overlap_in_connectivity import remove_regions_from_original_connectivity_file
-from part2.preprocessing.tools import remove_regions_from_connectivity
+from part2.preprocessing.tools import remove_regions_from_connectivity_file
 
 
 def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasBN_Atlas_246.nii',
@@ -72,13 +69,13 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
 
     # Remove found small regions from connectivity matrices for all subjects
     for masked_connectivity_file in masked_connectivity_files_paths:
-        remove_regions_from_masked_connectivity_file(small_regions, masked_connectivity_file, save_prefix=save_prefix,
+        remove_regions_from_connectivity_file(small_regions, masked_connectivity_file, save_prefix=save_prefix,
                                                      connectivity_matrix_name_start=connectivity_matrix_name_start,
                                                      timecourse_matrix_name_start=timecourse_matrix_name_start
                                                      )
 
     for connectivity_file in connectivity_files_paths:
-        remove_regions_from_original_connectivity_file(small_regions, connectivity_file, save_prefix=save_prefix,
+        remove_regions_from_connectivity_file(small_regions, connectivity_file, save_prefix=save_prefix,
                                                      connectivity_matrix_name_start=connectivity_matrix_name_start,
                                                      timecourse_matrix_name_start=timecourse_matrix_name_start
                                                      )
@@ -86,46 +83,6 @@ def filter_small_regions(data_directory:str, atlased_T1_name_end: str = '_AtlasB
     return None
 
 
-def remove_regions_from_masked_connectivity_file(regions_to_remove:list, connectivity_file_path:str,
-                                          connectivity_matrix_name_start:list = ['CM'], timecourse_matrix_name_start:list=['TCS'],
-                                          save_dir:str='', save_prefix:str='filtered_') -> None:
-    """
-    Method to remove regions from a connectivity matrix file (once it has been masked ie matfile structure modified) and save the filtered file
-    :param regions_to_remove: list of regions to remove
-    :param connectivity_file_path: path to connectivity matrix matlab (.mat) file
-    :param connectivity_matrix_name_start: list of strings that start the name of the connectivity matrix in the matlab file
-    :param timecourse_matrix_name_start: list of strings that start the name of the timecourse matrix in the matlab file
-    :return: None
-    """
-
-    connectivity = sio.loadmat(connectivity_file_path)
-    filtered_connectivity = connectivity.copy()
-    initial_index_to_region_correspondence = np.squeeze(connectivity['allCodeBooks'])
-
-    connectivity_matrix_keys = [key for key in connectivity.keys() if key.startswith(tuple(connectivity_matrix_name_start))]
-    timecourse_matrix_keys = [key for key in connectivity.keys() if key.startswith(tuple(timecourse_matrix_name_start))]
-
-    for connectivity_matrix_key in connectivity_matrix_keys:
-        connectivity_matrix = connectivity[connectivity_matrix_key]
-        filtered_connectivity_matrix, filtered_index_to_region_correspondence = remove_regions_from_connectivity(regions_to_remove,
-                                                                                              connectivity_matrix,
-                                                                                               list(initial_index_to_region_correspondence))
-        filtered_connectivity[connectivity_matrix_key] = filtered_connectivity_matrix
-
-    for timecourse_matrix_key in timecourse_matrix_keys:
-        timecourse_matrix = connectivity[timecourse_matrix_key]
-        filtered_timecourse_matrix, filtered_index_to_region_correspondence = remove_regions_from_connectivity(
-            regions_to_remove,
-            timecourse_matrix,
-            list(initial_index_to_region_correspondence))
-        filtered_connectivity[timecourse_matrix_key] = filtered_timecourse_matrix
-
-    filtered_connectivity['allCodeBooks'] = filtered_index_to_region_correspondence
-
-    if save_dir == '':
-        save_dir = os.path.dirname(connectivity_file_path)
-
-    sio.savemat(os.path.join(save_dir, save_prefix + os.path.basename(connectivity_file_path)), filtered_connectivity)
 
 
 if __name__ == '__main__':
