@@ -8,7 +8,7 @@ from part2.preprocessing.tools import remove_regions_from_connectivity, remove_r
 
 
 def detect_masked_regions(atlas_path:str, mask_path:str, n_voxels_overlap_threshold:int=None, fractional_overlap_threshold:float=None,
-                          save_intermediary_steps:bool=False, save_dir:str='') -> list:
+                          save_intermediary_steps:bool=False, save_dir:str='', verbose:bool=False) -> list:
     """
     Method to detect masked regions in an atlas
     :param atlas_path: path to atlas
@@ -35,7 +35,8 @@ def detect_masked_regions(atlas_path:str, mask_path:str, n_voxels_overlap_thresh
 
     # resample mask to atlas
     if mask_data.shape != atlas_data.shape:
-        print('Resampling mask to atlas resolution')
+        if verbose:
+            print('Resampling mask to atlas resolution')
         mask = resample_img(mask, target_affine=atlas.affine, target_shape=atlas.shape, interpolation='nearest')
         mask_data = np.squeeze(mask.get_fdata())
 
