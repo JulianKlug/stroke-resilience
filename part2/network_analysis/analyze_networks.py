@@ -12,9 +12,9 @@ from part2.network_analysis.network_analysis_tools import analyze_connectivity_g
 def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_connectivity_threshold: float = 0.3,
                     binned_thresholding:bool = False,
                     compute_smallwordness:bool = False, sigma_niter:int = 100, sigma_nrand: int = 5,
-                     connectivity_file_prefix:str = 'filtered_masked_transfer_',
-                     control_folder_prefix:str = 'amc',
-                     allow_multiple_connectivity_matrices_per_subject:bool=True) -> pd.DataFrame:
+                    connectivity_file_prefix:str = 'filtered_masked_transfer_',
+                    control_folder_prefix:str = 'amc',
+                    allow_multiple_connectivity_matrices_per_subject:bool=True) -> pd.DataFrame:
     """Analyze networks for all subjects in data_dir.
 
     Requires that the data_dir contains a subdirectory for each subject, and that each subject directory contains at least one .mat file with the connectivity matrix.
@@ -100,6 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--minimum_connectivity_threshold', type=float, help='Minimum inclusive threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).', default=0.3)
     parser.add_argument('-b', '--binned_thresholding', required=False, action='store_true', help='use binned proportionnal threshold where each bin contains the links between pX and pX + 0.1')
     parser.add_argument('-p', '--connectivity_file_prefix', type=str, help='Prefix of connectivity file (default: filtered_masked_transfer_).', default='filtered_masked_transfer_')
+    parser.add_argument('-c', '--control_folder_prefix', type=str, help='Prefix of control folder (default: amc).', default='amc')
     parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory.', default='')
     parser.add_argument('-nm', '--do_not_allow_multiple_connectivity_matrices_per_subject', required=False, action='store_true', help='If set, will raise an error if multiple connectivity matrices are found for a subject.', default=False)
     # smallwordness arguments
