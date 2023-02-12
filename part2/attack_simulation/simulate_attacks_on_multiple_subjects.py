@@ -1,5 +1,7 @@
 import glob
 import os
+import warnings
+
 from tqdm import tqdm
 
 from part2.attack_simulation.simulate_attacks import simulate_attacks
@@ -53,7 +55,13 @@ def simulate_attacks_on_multiple_subjects(subjects_data_dir:str, atlas_path:str,
             os.path.join(output_dir, subject_dir) if output_dir else ''
         )
         # find the correct connectivity file in subject_path given the connectivity_prefix
-        connectivity_path = glob.glob(os.path.join(subject_path, f'{connectivity_prefix}*.mat'))[0]
+        connectivity_path_possibilities = glob.glob(os.path.join(subject_path, f'{connectivity_prefix}*.mat'))
+
+        if len(connectivity_path_possibilities) == 0:
+            warnings.warn(f'No connectivity file found in {subject_path} with prefix {connectivity_prefix}. Skipping subject.')
+            continue
+
+        connectivity_path = connectivity_path_possibilities[0]
 
         # simulate attacks on subject
         simulate_attacks(connectivity_path, atlas_path, mask_paths,
