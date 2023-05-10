@@ -12,3 +12,4 @@ tqdm==4.61.2
 xlrd==2.0.1
 networkx == 2.6.3
 tqdm == 4.47.0
+pandas

@@ -14,7 +14,8 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
                     compute_smallwordness:bool = False, sigma_niter:int = 100, sigma_nrand: int = 5,
                     connectivity_file_prefix:str = 'filtered_masked_transfer_',
                     control_folder_prefix:str = 'amc',
-                    allow_multiple_connectivity_matrices_per_subject:bool=True) -> pd.DataFrame:
+                    allow_multiple_connectivity_matrices_per_subject:bool=True,
+                    restrict_to_subject_subdir:str=None) -> pd.DataFrame:
     """Analyze networks for all subjects in data_dir.
 
     Requires that the data_dir contains a subdirectory for each subject, and that each subject directory contains at least one .mat file with the connectivity matrix.
@@ -25,6 +26,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
         minimum_connectivity_threshold (float, optional): Minimum threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).
         connectivity_file_prefix (str, optional): Prefix of connectivity file (default: 'filtered_masked_transfer_').
         allow_multiple_connectivity_matrices_per_subject (bool, optional): Whether to allow multiple connectivity matrices per subject (default: True).
+        restrict_to_subject_subdir (str, optional): If not None, only consider connectivity matrices in the subdirectory named restrict_to_subject_subdir with a supposed structure of subj/../restrict_to_subject_dir/X/CM.mat (default: None).
         Smallworldness (sigma) parameters:
                 niter Approximate number of rewiring per edge to compute the equivalent random graph.
                 nrand Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr).
@@ -42,9 +44,12 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
 
     # loop over subjects
     for subject in tqdm(subjects):
-        # find the paths for all possible connectivity matrices with a search depth of 3
+        # find the paths for all possible connectivity matrices
         connectivity_matrix_path_possibilities = [str(path) for path in Path(os.path.join(data_dir, subject))
                                                                 .rglob(f'{connectivity_file_prefix}*.mat')]
+        if restrict_to_subject_subdir:
+            # ensure that the connectivity matrix is in the subject subdirectory named restrict_to_subject_subdir
+            connectivity_matrix_path_possibilities = [path for path in connectivity_matrix_path_possibilities if os.path.dirname(os.path.dirname(path)).split('/')[-1] == restrict_to_subject_subdir]
 
         if not connectivity_matrix_path_possibilities:
             warnings.warn(f'Could not find connectivity matrix for subject {subject}. Skipping subject.')
@@ -96,6 +101,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analyze networks for all subjects in data_dir.')
     parser.add_argument('-i', '--input_data_dir', type=str, help='Path to directory containing subject data.', required=True)
+    parser.add_argument('-r', '--restrict_to_subject_subdir', type=str, help='Restrict the search of CMs to a specific subdirectory in each subject directory, with a supposed structure of subj/../restrict_to_subject_dir/X/CM.mat (default: None).', default=None)
     parser.add_argument('-m', '--matrix_name', type=str, help='Name of matrix to analyze (default: CM3D_z_norm).', default='CM3D_z_norm')
     parser.add_argument('-t', '--minimum_connectivity_threshold', type=float, help='Minimum inclusive threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).', default=0.3)
     parser.add_argument('-b', '--binned_thresholding', required=False, action='store_true', help='use binned proportionnal threshold where each bin contains the links between pX and pX + 0.1')
@@ -116,7 +122,8 @@ if __name__ == '__main__':
     output_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
                                  args.smallworldness, args.sigma_niter, args.sigma_nrand,
                                  args.connectivity_file_prefix,
-                                 allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject)
+                                 allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
+                                 restrict_to_subject_subdir=args.restrict_to_subject_subdir)
     output_df = output_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
 
     output_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_network_analysis.csv'), index=False)
