@@ -42,6 +42,8 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
                                    'mean_degree_auc', 'median_degree_auc', 'mean_clustering_coefficient_auc',
                                   'median_clustering_coefficient_auc', 'global_efficiency_auc', 'overall_functional_connectivity'])
 
+    global_efficiencies_df = pd.DataFrame()
+
     # loop over subjects
     for subject in tqdm(subjects):
         # find the paths for all possible connectivity matrices
@@ -69,7 +71,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
 
         for connectivity_matrix_path in connectivity_matrix_path_possibilities:
             connectivity_matrix = sio.loadmat(connectivity_matrix_path)[matrix_name]
-            mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, global_efficiency_auc, overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
+            mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, global_efficiency_auc, global_efficiencies, overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
                                                                                                                                                                                                         binned_thresholding=binned_thresholding,
                                                                                                                                                                                                        compute_smallwordness=compute_smallwordness,
                                                                                                                                                                                                         sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
@@ -88,6 +90,14 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
                                     'overall_functional_connectivity': overall_functional_connectivity},
                                      index=[0])], ignore_index=True)
 
+            global_efficiencies_subj_df = pd.DataFrame(global_efficiencies, index=[0]).melt(var_name='threshold', value_name='global_efficiency')
+            global_efficiencies_subj_df['subject'] = subject
+            global_efficiencies_subj_df['subject_type'] = subject_type
+            global_efficiencies_subj_df['subject_id'] = subject_id
+            global_efficiencies_subj_df['connectivity_file_name'] = os.path.basename(connectivity_matrix_path)
+            global_efficiencies_subj_df['subject_timepoint'] = subject_timepoint
+            global_efficiencies_df = pd.concat([global_efficiencies_df, global_efficiencies_subj_df], ignore_index=True)
+
     # add columns 'matrix_name', 'minimum_connectivity_threshold', 'connectivity_file_prefix' to output_df
     output_df['matrix_name'] = matrix_name
     output_df['sigma_parameters (niter, nrand)'] = f'({sigma_niter}, {sigma_nrand})'
@@ -95,7 +105,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
     output_df['binned_thesholding'] = binned_thresholding
     output_df['connectivity_file_prefix'] = connectivity_file_prefix
 
-    return output_df
+    return output_df, global_efficiencies_df
 
 
 if __name__ == '__main__':
@@ -119,11 +129,13 @@ if __name__ == '__main__':
     if args.output_dir == '':
         args.output_dir = args.input_data_dir
 
-    output_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
+    output_df, global_efficiencies_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
                                  args.smallworldness, args.sigma_niter, args.sigma_nrand,
                                  args.connectivity_file_prefix,
                                  allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
                                  restrict_to_subject_subdir=args.restrict_to_subject_subdir)
     output_df = output_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
+    global_efficiencies_df = global_efficiencies_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint',  'connectivity_file_name'])
 
     output_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_network_analysis.csv'), index=False)
+    global_efficiencies_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_global_efficiencies.csv'), index=False)
