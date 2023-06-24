@@ -35,11 +35,29 @@ def small_worldness_sigma(adjacency_matrix_graph: np.ndarray, niter: int = 100, 
     networkX_graph = nx.from_numpy_matrix(adjacency_matrix_graph)
     return nx.sigma(networkX_graph, niter=niter, nrand=nrand)
 
+def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
+    """
+    Returns order parameter of a graph (probability of a random node being in the giant component)
+    Ref: http://networksciencebook.com/chapter/8#percolation-theory (8.2.1)
+    :param adjacency_matrix_graph: adjacency matrix of given graph
+    :return: order parameter
+    """
+    networkX_graph = nx.from_numpy_matrix(adjacency_matrix_graph)
+    num_nodes = networkX_graph.number_of_nodes()
+    # find giant component
+    Gcc = sorted(nx.connected_components(networkX_graph), key=len, reverse=True)
+    G0 = networkX_graph.subgraph(Gcc[0])
+    G0_num_nodes = G0.number_of_nodes()
+    # probability of a node being in the giant component
+    p = G0_num_nodes / num_nodes
+    # order parameter
+    return p
+
 
 def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connectivity_threshold: float = 0.3,
                                binned_thresholding: bool = False,
                                compute_smallwordness: bool = False, sigma_niter: int = 100,
-                               sigma_nrand: int = 5) -> None:
+                               sigma_nrand: int = 5) -> list:
     """Analyze connectivity matrix, transform into a graph at multiple thresholds and analyze each graph. For each metric, the AUC over all thresholds is returned.
 
     Steps:
@@ -82,9 +100,19 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     median_clustering_coefficients = {threshold: np.median(bct.clustering_coef_bu(graph)) for threshold, graph in
                                       graphs.items()}
 
+    # compute betweenness centrality with betweenness_bin()
+    mean_betweenness_centrality = {threshold: np.mean(bct.betweenness_bin(graph)) for threshold, graph in
+                                    graphs.items()}
+    median_betweenness_centrality = {threshold: np.median(bct.betweenness_bin(graph)) for threshold, graph in
+                                        graphs.items()}
+
     # compute global efficiency
     global_efficiencies = {threshold: global_efficiency(graph) for threshold, graph in graphs.items()}
 
+    # compute order parameter
+    order_parameters = {threshold: order_parameter(graph) for threshold, graph in graphs.items()}
+
+    # compute small-worldness sigma
     if compute_smallwordness:
         small_worldness_sigmas = {}
         for threshold in tqdm(thresholds, "Calculating small worldness sigma"):
@@ -94,31 +122,33 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
                                                                       nrand=sigma_nrand)
 
     # compute AUC for each metric over all thresholds above minimum_connectivity_threshold
-    mean_degree_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                          [mean_degrees[threshold] for threshold in thresholds if
-                           threshold >= minimum_connectivity_threshold])
-    median_degree_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                            [median_degrees[threshold] for threshold in thresholds if
-                             threshold >= minimum_connectivity_threshold])
-    mean_clustering_coefficient_auc = auc(
-        [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-        [mean_clustering_coefficients[threshold] for threshold in thresholds if
-         threshold >= minimum_connectivity_threshold])
-    median_clustering_coefficient_auc = auc(
-        [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-        [median_clustering_coefficients[threshold] for threshold in thresholds if
-         threshold >= minimum_connectivity_threshold])
-    global_efficiency_auc = auc([threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-                                [global_efficiencies[threshold] for threshold in thresholds if
-                                 threshold >= minimum_connectivity_threshold])
+    def thresholded_auc(min_threshold, thresholds, metric_dict):
+        return auc([threshold for threshold in thresholds if threshold >= min_threshold],
+                          [metric_dict[threshold] for threshold in thresholds if
+                           threshold >= min_threshold])
+
+    mean_degree_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, mean_degrees)
+    median_degree_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, median_degrees)
+    mean_betweenness_centrality_auc = thresholded_auc(minimum_connectivity_threshold, thresholds,
+                                                      mean_betweenness_centrality)
+    median_betweenness_centrality_auc = thresholded_auc(minimum_connectivity_threshold, thresholds,
+                                                        median_betweenness_centrality)
+
+    mean_clustering_coefficient_auc = thresholded_auc(minimum_connectivity_threshold, thresholds,
+                                                        mean_clustering_coefficients)
+    median_clustering_coefficient_auc = thresholded_auc(minimum_connectivity_threshold, thresholds,
+                                                            median_clustering_coefficients)
+    global_efficiency_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, global_efficiencies)
+    order_parameter_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, order_parameters)
 
     if compute_smallwordness:
-        small_worldness_sigma_auc = auc(
-            [threshold for threshold in thresholds if threshold >= minimum_connectivity_threshold],
-            [small_worldness_sigmas[threshold] for threshold in thresholds if
-             threshold >= minimum_connectivity_threshold])
+        small_worldness_sigma_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, small_worldness_sigmas)
     else:
         small_worldness_sigma_auc = np.nan
 
-    return mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
-        global_efficiency_auc, global_efficiencies, overall_functional_connectivity, small_worldness_sigma_auc
+    return mean_degree_auc, median_degree_auc, \
+        mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
+          mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
+        global_efficiency_auc, global_efficiencies, \
+        order_parameter_auc, \
+        overall_functional_connectivity, small_worldness_sigma_auc

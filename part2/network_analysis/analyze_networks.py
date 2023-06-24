@@ -71,7 +71,12 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
 
         for connectivity_matrix_path in connectivity_matrix_path_possibilities:
             connectivity_matrix = sio.loadmat(connectivity_matrix_path)[matrix_name]
-            mean_degree_auc, median_degree_auc, mean_clustering_coefficient_auc, median_clustering_coefficient_auc, global_efficiency_auc, global_efficiencies, overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
+            mean_degree_auc, median_degree_auc, \
+                mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
+                mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
+                global_efficiency_auc, global_efficiencies, \
+                order_parameter_auc, \
+                overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
                                                                                                                                                                                                         binned_thresholding=binned_thresholding,
                                                                                                                                                                                                        compute_smallwordness=compute_smallwordness,
                                                                                                                                                                                                         sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
@@ -85,7 +90,10 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
                                     'median_degree_auc': median_degree_auc,
                                     'mean_clustering_coefficient_auc': mean_clustering_coefficient_auc,
                                     'median_clustering_coefficient_auc': median_clustering_coefficient_auc,
+                                    'mean_betweenness_centrality_auc': mean_betweenness_centrality_auc,
+                                    'median_betweenness_centrality_auc': median_betweenness_centrality_auc,
                                     'global_efficiency_auc': global_efficiency_auc,
+                                    'order_parameter_auc': order_parameter_auc,
                                     'small_worldness_sigma_auc': small_worldness_sigma_auc,
                                     'overall_functional_connectivity': overall_functional_connectivity},
                                      index=[0])], ignore_index=True)
