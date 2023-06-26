@@ -32,7 +32,7 @@ def small_worldness_sigma(adjacency_matrix_graph: np.ndarray, niter: int = 100, 
     :param nrand Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr).
     :return: sigma "small-worldness" coefficient
     """
-    networkX_graph = nx.from_numpy_matrix(adjacency_matrix_graph)
+    networkX_graph = nx.from_numpy_array(adjacency_matrix_graph)
     return nx.sigma(networkX_graph, niter=niter, nrand=nrand)
 
 def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
@@ -42,7 +42,7 @@ def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
     :param adjacency_matrix_graph: adjacency matrix of given graph
     :return: order parameter
     """
-    networkX_graph = nx.from_numpy_matrix(adjacency_matrix_graph)
+    networkX_graph = nx.from_numpy_array(adjacency_matrix_graph)
     num_nodes = networkX_graph.number_of_nodes()
     # find giant component
     Gcc = sorted(nx.connected_components(networkX_graph), key=len, reverse=True)
