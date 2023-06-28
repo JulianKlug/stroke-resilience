@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import bct
 from sklearn.metrics import auc
+import math
 
 from part2.network_analysis.network_construction_tools import to_unweighted_graph
 
@@ -23,7 +24,65 @@ def global_efficiency(graph):
     return global_efficiency
 
 
-def small_worldness_sigma(adjacency_matrix_graph: np.ndarray, niter: int = 100, nrand: int = 5):
+def clusttriang(A):
+    """
+    C = CLUSTTRIANG(A) compute the clustering coefficient C of the
+    adjacency matrix A, based on the ratio (number of triangles)/(number of triples).
+
+    Notes:
+    (1) This is a subtly different definition than that of Watts & Strogatz (1998).
+    In the present form, it does give the fraction of neighboring nodes
+    that are also neighbors of each other. (Also note: for directed
+    graphs, this means *any* direction of connection, as along as all three
+    nodes are connected).
+
+    (2) This function uses the method of Keeling (1999) to compute C.
+
+    Original matlab function by Mark Humphries (22/8/2006)
+    """
+
+    A2 = np.dot(A, A)
+    A3 = np.dot(A2, A)
+    sumA2 = np.sum(A2)
+
+    C = np.trace(A3) / (sumA2 - np.trace(A2))
+
+    return C
+
+def ER_Expected_L_C(k, n):
+    """
+    The function computes the expected clustering coefficient (expectedC) and expected path-length (expectedL) of an Erdos-Renyi random graph with n nodes and mean degree k.
+    Original matlab function by Mark Humphries (3/2/2017)
+    :param k: mean degree
+    :param n: number of nodes
+    :return: expectedC, expectedL
+    """
+    expectedC = k / n
+    z1 = k
+    z2 = k ** 2
+    expectedL = (math.log((n - 1) * (z2 - z1) + z1 ** 2) - math.log(z1 ** 2)) / math.log(z2 / z1)
+    return expectedC, expectedL
+
+def small_world_ness(A, LR, CR, FLAG):
+    # Compute mean shortest path length L
+    _, D = bct.reachdist(A)
+    L = np.mean(D.flatten())
+
+    # Calculate required form of C
+    if FLAG == 1:
+        c = bct.clustering_coef_bu(A)
+        C = np.mean(c)
+    elif FLAG == 2:
+        C = clusttriang(A)
+
+    # Compute small-world-ness score S
+    Ls = L / LR
+    Cs = C / CR
+    S = Cs / Ls
+
+    return S
+
+def small_worldness_sigma(adjacency_matrix_graph: np.ndarray, method:str='analytical', niter: int = 100, nrand: int = 5):
     """
     Returns small-worldness sigma coefficient given the adjacency matrix of a graph
     Speed: approximately 1min per iteration (1 iter / 1 nrand)
@@ -32,8 +91,18 @@ def small_worldness_sigma(adjacency_matrix_graph: np.ndarray, niter: int = 100, 
     :param nrand Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr).
     :return: sigma "small-worldness" coefficient
     """
-    networkX_graph = nx.from_numpy_array(adjacency_matrix_graph)
-    return nx.sigma(networkX_graph, niter=niter, nrand=nrand)
+    if method == 'analytical':
+        md = np.mean(bct.degrees_und(adjacency_matrix_graph))
+        n_nodes = adjacency_matrix_graph.shape[0]
+        # compute clustering coefficient and path length of random graph
+        Cr, Lr = ER_Expected_L_C(md, n_nodes)
+        return small_world_ness(adjacency_matrix_graph, Lr, Cr, FLAG=1)
+    elif method == 'monte_carlo':
+        networkX_graph = nx.from_numpy_array(adjacency_matrix_graph)
+        return nx.sigma(networkX_graph, niter=niter, nrand=nrand)
+    else:
+        raise ValueError('method must be either "analytical" or "monte_carlo"')
+
 
 def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
     """
@@ -56,7 +125,7 @@ def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
 
 def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connectivity_threshold: float = 0.3,
                                binned_thresholding: bool = False,
-                               compute_smallwordness: bool = False, sigma_niter: int = 100,
+                               compute_smallwordness: bool = 0, sigma_niter: int = 100,
                                sigma_nrand: int = 5) -> list:
     """Analyze connectivity matrix, transform into a graph at multiple thresholds and analyze each graph. For each metric, the AUC over all thresholds is returned.
 
@@ -73,6 +142,10 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
         connectivity_matrix (np.ndarray): Connectivity matrix.
         minimum_connectivity_threshold (float, optional): Minimum threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).
         binned_thresholding
+        compute_smallwordness: bool = 0
+            - 0: do not compute small-worldness
+            - 1: compute small-worldness using analytical formula
+            - 2: compute small-worldness using Monte Carlo simulation (slow)
 
     """
     # compute overall functional connectivity (FC): mean of all positive values across all elements of the  matrix
@@ -118,8 +191,15 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
         for threshold in tqdm(thresholds, "Calculating small worldness sigma"):
             if threshold < minimum_connectivity_threshold:
                 continue
-            small_worldness_sigmas[threshold] = small_worldness_sigma(graphs[threshold], niter=sigma_niter,
-                                                                      nrand=sigma_nrand)
+
+            if compute_smallwordness == 1:
+                # use analytical formula
+                small_worldness_sigmas[threshold] = small_worldness_sigma(graphs[threshold], niter=sigma_niter,
+                                                                          nrand=sigma_nrand)
+            elif compute_smallwordness == 2:
+                # use Monte Carlo simulation
+                small_worldness_sigmas[threshold] = small_worldness_sigma(graphs[threshold], method='monte_carlo',
+                                                                          niter=sigma_niter, nrand=sigma_nrand)
 
     # compute AUC for each metric over all thresholds above minimum_connectivity_threshold
     def thresholded_auc(min_threshold, thresholds, metric_dict):

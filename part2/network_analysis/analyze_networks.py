@@ -128,17 +128,26 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory.', default='')
     parser.add_argument('-nm', '--do_not_allow_multiple_connectivity_matrices_per_subject', required=False, action='store_true', help='If set, will raise an error if multiple connectivity matrices are found for a subject.', default=False)
     # smallwordness arguments
-    parser.add_argument('-s', '--smallworldness', required=False, action='store_true', help='compute smallwordness (very slow)', default=False)
-    parser.add_argument('-snt', '--sigma_niter', type=int, help='Approximate number of rewiring per edge to compute the equivalent random graph.', default=100)
-    parser.add_argument('-snr', '--sigma_nrand', type=int, help='Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr).', default=5)
+    parser.add_argument('-ana_s', '--analytical_smallworldness', required=False, action='store_true', help='compute smallwordness analytically', default=False)
+    parser.add_argument('-mc_s', '--montecarlo_smallworldness', required=False, action='store_true', help='compute smallwordness by monte carlo simulation (very slow)', default=False)
+    parser.add_argument('-snt', '--sigma_niter', type=int, help='Approximate number of rewiring per edge to compute the equivalent random graph (Monte Carlo).', default=100)
+    parser.add_argument('-snr', '--sigma_nrand', type=int, help='Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr) (Monte Carlo).', default=5)
 
     args = parser.parse_args()
 
     if args.output_dir == '':
         args.output_dir = args.input_data_dir
 
+    smallworldness_flag = 0
+    if args.analytical_smallworldness:
+        smallworldness_flag = 1
+    if args.montecarlo_smallworldness:
+        smallworldness_flag = 2
+    if args.analytical_smallworldness and args.montecarlo_smallworldness:
+        raise ValueError('Cannot compute smallworldness analytically and by monte carlo simulation at the same time.')
+
     output_df, global_efficiencies_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
-                                 args.smallworldness, args.sigma_niter, args.sigma_nrand,
+                                 smallworldness_flag, args.sigma_niter, args.sigma_nrand,
                                  args.connectivity_file_prefix,
                                  allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
                                  restrict_to_subject_subdir=args.restrict_to_subject_subdir)
