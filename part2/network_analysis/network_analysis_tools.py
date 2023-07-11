@@ -226,7 +226,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     else:
         small_worldness_sigma_auc = np.nan
 
-    return mean_degree_auc, median_degree_auc, \
+    return graphs, mean_degree_auc, median_degree_auc, \
         mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
           mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
         global_efficiency_auc, global_efficiencies, \

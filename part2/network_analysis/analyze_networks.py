@@ -7,11 +7,13 @@ import pandas as pd
 import scipy.io as sio
 
 from part2.network_analysis.network_analysis_tools import analyze_connectivity_graph
+from part2.utils.utils import ensure_dir
 
 
 def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_connectivity_threshold: float = 0.3,
                     binned_thresholding:bool = False,
                     compute_smallwordness:bool = False, sigma_niter:int = 100, sigma_nrand: int = 5,
+                    save_graphs:bool = False,
                     connectivity_file_prefix:str = 'filtered_masked_transfer_',
                     control_folder_prefix:str = 'amc',
                     allow_multiple_connectivity_matrices_per_subject:bool=True,
@@ -27,6 +29,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
         connectivity_file_prefix (str, optional): Prefix of connectivity file (default: 'filtered_masked_transfer_').
         allow_multiple_connectivity_matrices_per_subject (bool, optional): Whether to allow multiple connectivity matrices per subject (default: True).
         restrict_to_subject_subdir (str, optional): If not None, only consider connectivity matrices in the subdirectory named restrict_to_subject_subdir with a supposed structure of subj/../restrict_to_subject_dir/X/CM.mat (default: None).
+        save_graphs (bool, optional): Whether to save the undirected thresholded graphs computet from every connectivity file (default: False).
         Smallworldness (sigma) parameters:
                 niter Approximate number of rewiring per edge to compute the equivalent random graph.
                 nrand Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr).
@@ -71,15 +74,22 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
 
         for connectivity_matrix_path in connectivity_matrix_path_possibilities:
             connectivity_matrix = sio.loadmat(connectivity_matrix_path)[matrix_name]
-            mean_degree_auc, median_degree_auc, \
+            graphs, mean_degree_auc, median_degree_auc, \
                 mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
                 mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
                 global_efficiency_auc, global_efficiencies, \
                 order_parameter_auc, \
                 overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
                                                                                                                                                                                                         binned_thresholding=binned_thresholding,
-                                                                                                                                                                                                       compute_smallwordness=compute_smallwordness,
-                                                                                                                                                                                                        sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
+                                                                                                                                                                                      compute_smallwordness=compute_smallwordness,
+                                                                                                                                                                                            sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
+
+            if save_graphs:
+                # transform keys of graphs dictionary to strings (matlab does not accept . in keys)
+                graphs_str = {f't{int(threshold * 10)}': graph for threshold, graph in graphs.items()}
+                graph_dir = os.path.join(data_dir, subject, 'undirected_thresholded_graphs')
+                ensure_dir(graph_dir)
+                sio.savemat(os.path.join(graph_dir, f'udt_graphs_{os.path.basename(connectivity_matrix_path)}'), graphs_str)
 
             output_df = pd.concat([output_df, pd.DataFrame({'subject': subject,
                                     'subject_type': subject_type,
@@ -127,6 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--control_folder_prefix', type=str, help='Prefix of control folder (default: amc).', default='amc')
     parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory.', default='')
     parser.add_argument('-nm', '--do_not_allow_multiple_connectivity_matrices_per_subject', required=False, action='store_true', help='If set, will raise an error if multiple connectivity matrices are found for a subject.', default=False)
+    parser.add_argument('-sg', '--save_graphs', required=False, action='store_true', help='If set, will save the graphs in matlab format.', default=False)
     # smallwordness arguments
     parser.add_argument('-ana_s', '--analytical_smallworldness', required=False, action='store_true', help='compute smallwordness analytically', default=False)
     parser.add_argument('-mc_s', '--montecarlo_smallworldness', required=False, action='store_true', help='compute smallwordness by monte carlo simulation (very slow)', default=False)
@@ -148,7 +159,9 @@ if __name__ == '__main__':
 
     output_df, global_efficiencies_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
                                  smallworldness_flag, args.sigma_niter, args.sigma_nrand,
+                                    args.save_graphs,
                                  args.connectivity_file_prefix,
+                                    args.control_folder_prefix,
                                  allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
                                  restrict_to_subject_subdir=args.restrict_to_subject_subdir)
     output_df = output_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
