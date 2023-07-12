@@ -7,6 +7,11 @@ import math
 
 from part2.network_analysis.network_construction_tools import to_unweighted_graph
 
+def thresholded_auc(min_threshold, thresholds, metric_dict):
+    return auc([threshold for threshold in thresholds if threshold >= min_threshold],
+               [metric_dict[threshold] for threshold in thresholds if
+                threshold >= min_threshold])
+
 
 def global_efficiency(graph):
     """Compute global efficiency of a graph.
@@ -202,11 +207,6 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
                                                                           niter=sigma_niter, nrand=sigma_nrand)
 
     # compute AUC for each metric over all thresholds above minimum_connectivity_threshold
-    def thresholded_auc(min_threshold, thresholds, metric_dict):
-        return auc([threshold for threshold in thresholds if threshold >= min_threshold],
-                          [metric_dict[threshold] for threshold in thresholds if
-                           threshold >= min_threshold])
-
     mean_degree_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, mean_degrees)
     median_degree_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, median_degrees)
     mean_betweenness_centrality_auc = thresholded_auc(minimum_connectivity_threshold, thresholds,
