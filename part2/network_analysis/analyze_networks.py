@@ -4,6 +4,7 @@ import warnings
 from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
+import numpy as np
 import scipy.io as sio
 
 from part2.network_analysis.network_analysis_tools import analyze_connectivity_graph
@@ -37,13 +38,14 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
     Returns:
         pd.DataFrame: Dataframe containing all metrics for all subjects.
     """
+    # Constants
+    index_to_region_mapping_name = 'allCodeBooks'
+
     # get list of subjects
     subjects = [subject for subject in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, subject))]
 
     # initialize output_df
-    output_df = pd.DataFrame(columns=['subject', 'subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name',
-                                   'mean_degree_auc', 'median_degree_auc', 'mean_clustering_coefficient_auc',
-                                  'median_clustering_coefficient_auc', 'global_efficiency_auc', 'overall_functional_connectivity'])
+    output_df = pd.DataFrame(columns=['subject', 'subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
 
     global_efficiencies_df = pd.DataFrame()
 
@@ -73,13 +75,17 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
             subject_timepoint = subject.split('_')[2]
 
         for connectivity_matrix_path in connectivity_matrix_path_possibilities:
-            connectivity_matrix = sio.loadmat(connectivity_matrix_path)[matrix_name]
+            connectivity_matrix_object = sio.loadmat(connectivity_matrix_path)
+            connectivity_matrix = connectivity_matrix_object[matrix_name]
+            index_to_region_mapping = np.squeeze(connectivity_matrix_object[index_to_region_mapping_name].T)
+
             graphs, mean_degree_auc, median_degree_auc, \
                 mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
                 mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
                 global_efficiency_auc, global_efficiencies, \
                 order_parameter_auc, \
-                overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold,
+                modularity_auc, \
+                overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold, index_to_region_mapping,
                                                                                                                                                                                                         binned_thresholding=binned_thresholding,
                                                                                                                                                                                       compute_smallwordness=compute_smallwordness,
                                                                                                                                                                                             sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
@@ -104,6 +110,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
                                     'median_betweenness_centrality_auc': median_betweenness_centrality_auc,
                                     'global_efficiency_auc': global_efficiency_auc,
                                     'order_parameter_auc': order_parameter_auc,
+                                    'modularity_auc': modularity_auc,
                                     'small_worldness_sigma_auc': small_worldness_sigma_auc,
                                     'overall_functional_connectivity': overall_functional_connectivity},
                                      index=[0])], ignore_index=True)

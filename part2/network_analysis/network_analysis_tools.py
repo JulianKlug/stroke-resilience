@@ -1,9 +1,12 @@
+from bct import modularity_und
 from tqdm import tqdm
 import networkx as nx
-import numpy as np
+import os
 import bct
 from sklearn.metrics import auc
 import math
+import pandas as pd
+import numpy as np
 
 from part2.network_analysis.network_construction_tools import to_unweighted_graph
 
@@ -11,6 +14,25 @@ def thresholded_auc(min_threshold, thresholds, metric_dict):
     return auc([threshold for threshold in thresholds if threshold >= min_threshold],
                [metric_dict[threshold] for threshold in thresholds if
                 threshold >= min_threshold])
+
+class ModularityCalculator:
+    def __init__(self, index_to_region_mapping):
+        # Modules are based on predefined Yeo 17 networks (which have been mapped to Brainnetome)
+        bn_to_yeo_mapping_path = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'utils', 'BN_to_Yeo_mapping.csv')
+        bn_to_yeo_mapping = pd.read_csv(bn_to_yeo_mapping_path)
+        # Regions of brainnetome without a clear Yeo network assignment are assigned to network 18 (subcortical)
+        bn_to_yeo_mapping['atlas2_region'] = bn_to_yeo_mapping['atlas2_region'].fillna(18)
+        # if fractional region overlap < 0.5, set to 18
+        bn_to_yeo_mapping.loc[bn_to_yeo_mapping['fractional_region_overlap'] < 0.5, 'atlas2_region'] = 18
+        self.index_to_module_mapping = [
+            bn_to_yeo_mapping.loc[
+                bn_to_yeo_mapping['atlas1_region'] == index_to_region_mapping[i], 'atlas2_region'].values[
+                0] for i in range(len(index_to_region_mapping))]
+
+    def newmann_q(self, graph):
+        # Compute modularity using Newman's method
+        _, q = modularity_und(graph, kci=self.index_to_module_mapping)
+        return q
 
 
 def global_efficiency(graph):
@@ -129,6 +151,7 @@ def order_parameter(adjacency_matrix_graph: np.ndarray) -> float:
 
 
 def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connectivity_threshold: float = 0.3,
+                                index_to_region_mapping:np.ndarray=None,
                                binned_thresholding: bool = False,
                                compute_smallwordness: bool = 0, sigma_niter: int = 100,
                                sigma_nrand: int = 5) -> list:
@@ -146,6 +169,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     Args:
         connectivity_matrix (np.ndarray): Connectivity matrix.
         minimum_connectivity_threshold (float, optional): Minimum threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).
+        index_to_region_mapping (np.ndarray, optional): Mapping from index to region name (default: None).
         binned_thresholding
         compute_smallwordness: bool = 0
             - 0: do not compute small-worldness
@@ -190,6 +214,10 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     # compute order parameter
     order_parameters = {threshold: order_parameter(graph) for threshold, graph in graphs.items()}
 
+    # compute modularity
+    modularity_calculator = ModularityCalculator(index_to_region_mapping)
+    modularities = {threshold: modularity_calculator.newmann_q(graph) for threshold, graph in graphs.items()}
+
     # compute small-worldness sigma
     if compute_smallwordness:
         small_worldness_sigmas = {}
@@ -220,6 +248,7 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
                                                             median_clustering_coefficients)
     global_efficiency_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, global_efficiencies)
     order_parameter_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, order_parameters)
+    modularity_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, modularities)
 
     if compute_smallwordness:
         small_worldness_sigma_auc = thresholded_auc(minimum_connectivity_threshold, thresholds, small_worldness_sigmas)
@@ -231,4 +260,5 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
           mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
         global_efficiency_auc, global_efficiencies, \
         order_parameter_auc, \
+        modularity_auc, \
         overall_functional_connectivity, small_worldness_sigma_auc
