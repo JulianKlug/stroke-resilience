@@ -1,7 +1,7 @@
 clear()
 clc()
 
-data_dir = '';
+data_dir = '/Users/jk1/temp/resilience_part2/temp_data';
 n_rand = 100;
 flag = 1; %1 for clustering coefficient using Cws, 2 for clustering coefficient using transitivity
 
@@ -16,8 +16,9 @@ for i = 1:length(subdirectories)
         for j = 1:length(subject_subdirectories)
             if subject_subdirectories(j).isdir && strcmp(subject_subdirectories(j).name,'undirected_thresholded_graphs')
                 graphs_dir = [sub_dir '/' subject_subdirectories(j).name '/'];
-                %find all .mat files
+                %find all .mat files (that do not end in _sw_sigmas.mat)
                 graphs_files = dir([graphs_dir '*.mat']);
+                graphs_files = graphs_files(~contains({graphs_files.name},'_sw_sigmas.mat'));
                 for k = 1:length(graphs_files)
                     %load .mat file
                     graph = load([graphs_dir graphs_files(k).name]);
