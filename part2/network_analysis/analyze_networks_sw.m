@@ -1,9 +1,14 @@
 clear()
 clc()
 
-data_dir = '/Users/jk1/temp/resilience_part2/temp_data';
+data_dir = '';
+bct_path = ''
+sw_toolbox_path = '';
 n_rand = 100;
 flag = 1; %1 for clustering coefficient using Cws, 2 for clustering coefficient using transitivity
+
+addpath(genpath(bct_path));
+addpath(genpath(sw_toolbox_path));
 
 %iterate through all subdirectories (subjects)
 subdirectories = dir(data_dir);
