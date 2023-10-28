@@ -1,15 +1,17 @@
 clear()
 clc()
 
- data_dir = '/home/users/k/klug/data/resilience/RS';
- bct_path = '/home/users/k/klug/utils/2019_03_03_BCT';
- sw_toolbox_path = '/home/users/k/klug/utils/SmallWorldNess';
+data_dir = '/home/users/k/klug/data/resilience/RS';
+bct_path = '/home/users/k/klug/utils/2019_03_03_BCT';
+sw_toolbox_path = '/home/users/k/klug/utils/SmallWorldNess';
+start_string = 'udt_graphs_noNaN';
+
 n_rand = 100;
 flag = 1; %1 for clustering coefficient using Cws, 2 for clustering coefficient using transitivity
 recompute = 0; %1 to recompute, 0 to skip recomputing
 
- addpath(genpath(bct_path));
- addpath(genpath(sw_toolbox_path));
+addpath(genpath(bct_path));
+addpath(genpath(sw_toolbox_path));
 
 
 %iterate through all subdirectories (subjects)
@@ -26,7 +28,7 @@ for i = 1:length(subdirectories)
             if subject_subdirectories(j).isdir && strcmp(subject_subdirectories(j).name,'undirected_thresholded_graphs')
                 graphs_dir = [sub_dir '/' subject_subdirectories(j).name '/'];
                 %find all .mat files (that do not end in _sw_sigmas.mat)
-                graphs_files = dir([graphs_dir '*.mat']);
+                graphs_files = dir([graphs_dir strcat(start_string, '*.mat')]);
                 graphs_files = graphs_files(~contains({graphs_files.name},'_sw_sigmas.mat'));
                 graphs_files_paths = fullfile(graphs_dir, {graphs_files.name});
                 parfor k = 1:length(graphs_files_paths)

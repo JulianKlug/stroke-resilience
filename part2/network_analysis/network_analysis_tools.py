@@ -31,6 +31,8 @@ class ModularityCalculator:
 
     def newmann_q(self, graph):
         # Compute modularity using Newman's method
+        # Q=  1/2m * ∑_ij〖(A_ij-(k_i k_j)/2m) * δ_(c_i c_j )〗
+        # Where Q is the modularity of the network, with m edges and an adjacency matrix A. The expected number of edges falling between two vertices i and j in the configuration model is equal to (k_i k_j)/2m, where ki is the degree of node i. ci and cj are the cluster assignments of nodes I and j respectively. δ_(c_i c_j ) is the Kronecker delta function, which equals 1 if  ci equals c , and 0 otherwise.
         _, q = modularity_und(graph, kci=self.index_to_module_mapping)
         return q
 

@@ -59,3 +59,15 @@ summary(selected_modulators_model_fit_TP1)
 wmgm_model_fit <- lmer(modul ~ TP + wmgm
                             + (1|subj), all_modulators_df)
 summary(wmgm_model_fit)
+
+# Using subset of modulators (size, cgm, wmgm) at TP1
+subset_modulators_model_fit <- lmer(modul ~ lesion_size
+                            + cgm + wmgm
+                            + (1|subj), all_modulators_df, subset = TP == "TP1")
+
+summary(subset_modulators_model_fit)
+
+# clinical modulators, TP1
+clinical_modulators_model_fit <- lmer(modul ~ age + nihss_hospital
+                            + (1|subj), all_modulators_df, subset = TP == "TP1")
+summary(clinical_modulators_model_fit)

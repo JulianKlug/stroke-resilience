@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --partition=public-longrun-cpu
+#SBATCH --partition=shared-cpu
 #SBATCH --job-name=resilience_analyze_networks_sw    # Job name
+#SBATCH --nodes=1
 #SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
 #SBATCH --output=/home/users/k/klug/logs/resilience/compute_sw_%j.log   # Standard output and error log
 #SBATCH --licenses=matlab@matlablm.unige.ch
-#SBATCH --time=10-00:00:00               # Time limit hrs:min:sec
+#SBATCH --time=11:59:00              # Time limit hrs:min:sec
 
 
 module load MATLAB/2022a
