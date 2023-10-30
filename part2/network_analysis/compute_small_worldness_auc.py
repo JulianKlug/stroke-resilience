@@ -10,6 +10,7 @@ from part2.network_analysis.network_analysis_tools import thresholded_auc
 
 def compute_small_worldness_auc(data_dir:str,
                                 minimum_connectivity_threshold: float = 0.3,
+                                restrict_to_prefix:str = 'udt_graphs_',
                                 small_worldness_sigma_suffix:str='_sw_sigmas.mat',
                                 control_folder_prefix:str = 'amc',
                                 verbose:bool= True) -> pd.DataFrame:
@@ -52,7 +53,7 @@ def compute_small_worldness_auc(data_dir:str,
         small_worldness_sigma_files = [file for file in os.listdir(os.path.join(data_dir, subject, 'undirected_thresholded_graphs')) if file.endswith(small_worldness_sigma_suffix)]
 
         for file in small_worldness_sigma_files:
-            connectivity_matrix_name = file.split('udt_graphs_')[1].split(small_worldness_sigma_suffix)[0]
+            connectivity_matrix_name = file.split(restrict_to_prefix)[1].split(small_worldness_sigma_suffix)[0]
             small_worldness_sigmas_over_thresholds = np.rec.array(sio.loadmat(os.path.join(data_dir, subject, 'undirected_thresholded_graphs', file))['graph_sigmas'])
             sw_sigmas_dict = {}
             for string_threshold in small_worldness_sigmas_over_thresholds.dtype.names:
@@ -84,6 +85,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analyze networks for all subjects in data_dir.')
     parser.add_argument('-i', '--input_data_dir', type=str, help='Path to directory containing subject data.', required=True)
     parser.add_argument('-t', '--minimum_connectivity_threshold', type=float, help='Minimum inclusive threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).', default=0.3)
+    parser.add_argument('-p', '--restrict_to_prefix', type=str, help='Prefix of connectivity files to restrict to (default: udt_graphs_).', default='udt_graphs_')
     parser.add_argument('-s', '--small_worldness_sigma_suffix', type=str, help='Suffix of file containing pre-computed smallworldness (default: _sw_sigmas.mat).', default='_sw_sigmas.mat')
     parser.add_argument('-c', '--control_folder_prefix', type=str, help='Prefix of control folder (default: amc).', default='amc')
     parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory.', default='')
@@ -96,6 +98,7 @@ if __name__ == '__main__':
 
     output_df = compute_small_worldness_auc(args.input_data_dir,
                                             args.minimum_connectivity_threshold,
+                                            args.restrict_to_prefix,
                                             args.small_worldness_sigma_suffix,
                                             control_folder_prefix=args.control_folder_prefix,
                                             verbose=args.verbose)
