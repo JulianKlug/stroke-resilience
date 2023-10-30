@@ -50,10 +50,14 @@ def compute_small_worldness_auc(data_dir:str,
             subject_timepoint = subject.split('_')[2]
 
         # get list of small_worldness_sigma files
-        small_worldness_sigma_files = [file for file in os.listdir(os.path.join(data_dir, subject, 'undirected_thresholded_graphs')) if file.endswith(small_worldness_sigma_suffix)]
+        small_worldness_sigma_files = [file for file in os.listdir(os.path.join(data_dir, subject, 'undirected_thresholded_graphs'))
+                                       if (
+                                           file.startswith(restrict_to_prefix) and
+                                           file.endswith(small_worldness_sigma_suffix)
+                                       )]
 
         for file in small_worldness_sigma_files:
-            connectivity_matrix_name = file.split(restrict_to_prefix)[1].split(small_worldness_sigma_suffix)[0]
+            connectivity_matrix_name = file.split("udt_graphs_")[1].split(small_worldness_sigma_suffix)[0]
             small_worldness_sigmas_over_thresholds = np.rec.array(sio.loadmat(os.path.join(data_dir, subject, 'undirected_thresholded_graphs', file))['graph_sigmas'])
             sw_sigmas_dict = {}
             for string_threshold in small_worldness_sigmas_over_thresholds.dtype.names:
