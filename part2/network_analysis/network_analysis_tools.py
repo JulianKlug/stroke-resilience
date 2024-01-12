@@ -36,6 +36,22 @@ class ModularityCalculator:
         _, q = modularity_und(graph, kci=self.index_to_module_mapping)
         return q
 
+    def participation_coefficients_per_node(self, graph):
+        # Compute participation coefficient per node
+        pc_per_node = bct.participation_coef(graph, self.index_to_module_mapping)
+        return pc_per_node
+
+    def participation_coefficients_per_module(self, graph):
+        # Compute median participation coefficient per module
+
+        pc_per_node = self.participation_coefficients_per_node(graph)
+        modules = np.unique(self.index_to_module_mapping)
+        pc_per_module = {}
+        for module in modules:
+            pc_per_module[module] = np.median(pc_per_node[self.index_to_module_mapping == module])
+
+        return pc_per_module
+
 
 def global_efficiency(graph):
     """Compute global efficiency of a graph.
@@ -156,7 +172,9 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
                                 index_to_region_mapping:np.ndarray=None,
                                binned_thresholding: bool = False,
                                compute_smallwordness: bool = 0, sigma_niter: int = 100,
-                               sigma_nrand: int = 5) -> list:
+                               sigma_nrand: int = 5,
+                               compute_participation_coefficients: bool = 0,
+                               ) -> list:
     """Analyze connectivity matrix, transform into a graph at multiple thresholds and analyze each graph. For each metric, the AUC over all thresholds is returned.
 
     Steps:
@@ -220,6 +238,11 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     modularity_calculator = ModularityCalculator(index_to_region_mapping)
     modularities = {threshold: modularity_calculator.newmann_q(graph) for threshold, graph in graphs.items()}
 
+    if compute_participation_coefficients:
+        # compute participation coefficients
+        participation_coefficients_per_node = {threshold: modularity_calculator.participation_coefficients_per_node(graph) for threshold, graph in graphs.items()}
+        participation_coefficients_per_module = {threshold: modularity_calculator.participation_coefficients_per_module(graph) for threshold, graph in graphs.items()}
+
     # compute small-worldness sigma
     if compute_smallwordness:
         small_worldness_sigmas = {}
@@ -257,10 +280,24 @@ def analyze_connectivity_graph(connectivity_matrix: np.ndarray, minimum_connecti
     else:
         small_worldness_sigma_auc = np.nan
 
+    if compute_participation_coefficients:
+        # compute aucs over thresholds for all nodes
+        participation_coefficients_auc_per_node = (pd.DataFrame(participation_coefficients_per_node)
+                                                   .apply(lambda x: thresholded_auc(minimum_connectivity_threshold,
+                                                                                    thresholds, x.to_dict()), axis=1))
+        # compute aucs over thresholds for all modules
+        participation_coefficients_auc_per_module = (pd.DataFrame(participation_coefficients_per_module)
+                                                     .apply(lambda x: thresholded_auc(minimum_connectivity_threshold,
+                                                                                      thresholds, x.to_dict()), axis=1))
+    else:
+        participation_coefficients_auc_per_node = np.nan
+        participation_coefficients_auc_per_module = np.nan
+
     return graphs, mean_degree_auc, median_degree_auc, \
         mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
           mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
         global_efficiency_auc, global_efficiencies, \
         order_parameter_auc, \
         modularity_auc, \
-        overall_functional_connectivity, small_worldness_sigma_auc
+        overall_functional_connectivity, small_worldness_sigma_auc, \
+        participation_coefficients_auc_per_node, participation_coefficients_auc_per_module

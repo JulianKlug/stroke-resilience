@@ -14,6 +14,7 @@ from part2.utils.utils import ensure_dir
 def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_connectivity_threshold: float = 0.3,
                     binned_thresholding:bool = False,
                     compute_smallwordness:bool = False, sigma_niter:int = 100, sigma_nrand: int = 5,
+                    compute_participation_coefficients:bool = False,
                     save_graphs:bool = False,
                     connectivity_file_prefix:str = 'filtered_masked_transfer_',
                     control_folder_prefix:str = 'amc',
@@ -48,6 +49,8 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
     output_df = pd.DataFrame(columns=['subject', 'subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
 
     global_efficiencies_df = pd.DataFrame()
+    participation_coefficients_per_node_df = pd.DataFrame()
+    participation_coefficients_per_module_df = pd.DataFrame()
 
     # loop over subjects
     for subject in tqdm(subjects):
@@ -79,16 +82,20 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
             connectivity_matrix = connectivity_matrix_object[matrix_name]
             index_to_region_mapping = np.squeeze(connectivity_matrix_object[index_to_region_mapping_name].T)
 
+            results = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold, index_to_region_mapping,
+                                                 binned_thresholding=binned_thresholding,
+                                                 compute_smallwordness=compute_smallwordness,
+                                                 sigma_niter=sigma_niter, sigma_nrand=sigma_nrand,
+                                                 compute_participation_coefficients=compute_participation_coefficients)
+
             graphs, mean_degree_auc, median_degree_auc, \
                 mean_betweenness_centrality_auc, median_betweenness_centrality_auc, \
                 mean_clustering_coefficient_auc, median_clustering_coefficient_auc, \
                 global_efficiency_auc, global_efficiencies, \
                 order_parameter_auc, \
                 modularity_auc, \
-                overall_functional_connectivity, small_worldness_sigma_auc = analyze_connectivity_graph(connectivity_matrix, minimum_connectivity_threshold, index_to_region_mapping,
-                                                                                                                                                                                                        binned_thresholding=binned_thresholding,
-                                                                                                                                                                                      compute_smallwordness=compute_smallwordness,
-                                                                                                                                                                                            sigma_niter=sigma_niter, sigma_nrand=sigma_nrand)
+                overall_functional_connectivity, small_worldness_sigma_auc, \
+                participation_coefficients_auc_per_node, participation_coefficients_auc_per_module = results
 
             if save_graphs:
                 # transform keys of graphs dictionary to strings (matlab does not accept . in keys)
@@ -123,6 +130,35 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
             global_efficiencies_subj_df['subject_timepoint'] = subject_timepoint
             global_efficiencies_df = pd.concat([global_efficiencies_df, global_efficiencies_subj_df], ignore_index=True)
 
+            participation_coefficients_per_node_subj_df = (pd.DataFrame(participation_coefficients_auc_per_node)
+                                                           .reset_index()
+                                                           .rename(columns={'index': 'node_idx',
+                                                                            0: 'participation_coefficient'}))
+            participation_coefficients_per_node_subj_df['subject'] = subject
+            participation_coefficients_per_node_subj_df['subject_type'] = subject_type
+            participation_coefficients_per_node_subj_df['subject_id'] = subject_id
+            participation_coefficients_per_node_subj_df['connectivity_file_name'] = os.path.basename(connectivity_matrix_path)
+            participation_coefficients_per_node_subj_df['subject_timepoint'] = subject_timepoint
+            participation_coefficients_per_node_df = pd.concat([participation_coefficients_per_node_df,
+                                                                participation_coefficients_per_node_subj_df],
+                                                               ignore_index=True)
+
+            participation_coefficients_per_module_subj_df = (pd.DataFrame(participation_coefficients_auc_per_module)
+                                                                .reset_index()
+                                                                .rename(columns={'index': 'module',
+                                                                                0: 'participation_coefficient'}))
+            participation_coefficients_per_module_subj_df['subject'] = subject
+            participation_coefficients_per_module_subj_df['subject_type'] = subject_type
+            participation_coefficients_per_module_subj_df['subject_id'] = subject_id
+            participation_coefficients_per_module_subj_df['connectivity_file_name'] = os.path.basename(connectivity_matrix_path)
+            participation_coefficients_per_module_subj_df['subject_timepoint'] = subject_timepoint
+            participation_coefficients_per_module_df = pd.concat([participation_coefficients_per_module_df,
+                                                                    participation_coefficients_per_module_subj_df],
+                                                                     ignore_index=True)
+
+
+
+
     # add columns 'matrix_name', 'minimum_connectivity_threshold', 'connectivity_file_prefix' to output_df
     output_df['matrix_name'] = matrix_name
     output_df['sigma_parameters (niter, nrand)'] = f'({sigma_niter}, {sigma_nrand})'
@@ -130,7 +166,7 @@ def analyze_networks(data_dir:str, matrix_name: str = 'CM3D_z_norm', minimum_con
     output_df['binned_thesholding'] = binned_thresholding
     output_df['connectivity_file_prefix'] = connectivity_file_prefix
 
-    return output_df, global_efficiencies_df
+    return output_df, global_efficiencies_df, participation_coefficients_per_node_df, participation_coefficients_per_module_df
 
 
 if __name__ == '__main__':
@@ -140,6 +176,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--matrix_name', type=str, help='Name of matrix to analyze (default: CM3D_z_norm).', default='CM3D_z_norm')
     parser.add_argument('-t', '--minimum_connectivity_threshold', type=float, help='Minimum inclusive threshold to include for AUC computation (default: 0.3, i.e. [0.3-1]).', default=0.3)
     parser.add_argument('-b', '--binned_thresholding', required=False, action='store_true', help='use binned proportionnal threshold where each bin contains the links between pX and pX + 0.1')
+    parser.add_argument('-pc', '--compute_participation_coefficients', required=False, action='store_true', help='compute participation coefficients', default=False)
     parser.add_argument('-p', '--connectivity_file_prefix', type=str, help='Prefix of connectivity file (default: filtered_masked_transfer_).', default='filtered_masked_transfer_')
     parser.add_argument('-c', '--control_folder_prefix', type=str, help='Prefix of control folder (default: amc).', default='amc')
     parser.add_argument('-o', '--output_dir', type=str, help='Path to output directory.', default='')
@@ -150,6 +187,7 @@ if __name__ == '__main__':
     parser.add_argument('-mc_s', '--montecarlo_smallworldness', required=False, action='store_true', help='compute smallwordness by monte carlo simulation (very slow)', default=False)
     parser.add_argument('-snt', '--sigma_niter', type=int, help='Approximate number of rewiring per edge to compute the equivalent random graph (Monte Carlo).', default=100)
     parser.add_argument('-snr', '--sigma_nrand', type=int, help='Number of random graphs generated to compute the average clustering coefficient (Cr) and average shortest path length (Lr) (Monte Carlo).', default=5)
+
 
     args = parser.parse_args()
 
@@ -164,15 +202,28 @@ if __name__ == '__main__':
     if args.analytical_smallworldness and args.montecarlo_smallworldness:
         raise ValueError('Cannot compute smallworldness analytically and by monte carlo simulation at the same time.')
 
-    output_df, global_efficiencies_df = analyze_networks(args.input_data_dir, args.matrix_name, args.minimum_connectivity_threshold, args.binned_thresholding,
-                                 smallworldness_flag, args.sigma_niter, args.sigma_nrand,
-                                    args.save_graphs,
-                                 args.connectivity_file_prefix,
-                                    args.control_folder_prefix,
-                                 allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
-                                 restrict_to_subject_subdir=args.restrict_to_subject_subdir)
+    output_df, global_efficiencies_df, participation_coefficients_per_node_df, participation_coefficients_per_module_df = analyze_networks(
+        data_dir=args.input_data_dir,
+        matrix_name=args.matrix_name,
+        minimum_connectivity_threshold=args.minimum_connectivity_threshold,
+        binned_thresholding=args.binned_thresholding,
+        compute_smallwordness=smallworldness_flag,
+        sigma_niter=args.sigma_niter,
+        sigma_nrand=args.sigma_nrand,
+        compute_participation_coefficients=args.compute_participation_coefficients,
+        save_graphs=args.save_graphs,
+        connectivity_file_prefix=args.connectivity_file_prefix,
+        control_folder_prefix=args.control_folder_prefix,
+        allow_multiple_connectivity_matrices_per_subject=not args.do_not_allow_multiple_connectivity_matrices_per_subject,
+        restrict_to_subject_subdir=args.restrict_to_subject_subdir
+    )
+
     output_df = output_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint', 'connectivity_file_name'])
     global_efficiencies_df = global_efficiencies_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint',  'connectivity_file_name'])
+    participation_coefficients_per_node_df = participation_coefficients_per_node_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint',  'connectivity_file_name'])
+    participation_coefficients_per_module_df = participation_coefficients_per_module_df.sort_values(by=['subject_type', 'subject_id', 'subject_timepoint',  'connectivity_file_name'])
 
     output_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_network_analysis.csv'), index=False)
     global_efficiencies_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_global_efficiencies.csv'), index=False)
+    participation_coefficients_per_node_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_participation_coefficients_per_node.csv'), index=False)
+    participation_coefficients_per_module_df.to_csv(os.path.join(args.output_dir, f'{args.matrix_name}_participation_coefficients_per_module.csv'), index=False)
